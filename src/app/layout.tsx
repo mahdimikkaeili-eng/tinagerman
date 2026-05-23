@@ -14,24 +14,38 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "Deutsch mit Tina — Learn German Online | Personalized 1-on-1 Lessons A1-C1",
+  description:
+    "Learn German with Tina — personalized 1-on-1 German lessons from A1 to C1. Certified teacher, 200+ students, 3+ years experience. Book your free trial lesson today!",
+  keywords: [
+    "learn German",
+    "German lessons online",
+    "Deutsch lernen",
+    "German teacher",
+    "A1 German",
+    "C1 German",
+    "online German course",
+    "German tutoring",
+    "Deutsch mit Tina",
+    "German language learning",
+  ],
+  authors: [{ name: "Deutsch mit Tina" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "Deutsch mit Tina — Learn German Online",
+    description:
+      "Personalized 1-on-1 German lessons from A1 to C1. Book your free trial lesson today!",
+    url: "https://tinagerman.com",
+    siteName: "Deutsch mit Tina",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "Deutsch mit Tina — Learn German Online",
+    description:
+      "Personalized 1-on-1 German lessons from A1 to C1. Book your free trial lesson today!",
   },
 };
 

@@ -1,31 +1,63 @@
-'use client'
+"use client";
+
+import { useEffect } from "react";
+import { useAppStore } from "@/store/app-store";
+import { Header } from "@/components/header";
+import { HeroSection } from "@/components/hero-section";
+import { TeacherSection } from "@/components/teacher-section";
+import { CoursesSection } from "@/components/courses-section";
+import { HowItWorksSection } from "@/components/how-it-works-section";
+import { TestimonialsSection } from "@/components/testimonials-section";
+import { ContactSection } from "@/components/contact-section";
+import { Footer } from "@/components/footer";
+import { AuthModal } from "@/components/auth-modal";
+import { Dashboard } from "@/components/dashboard";
 
 export default function Home() {
+  const { isAuthenticated } = useAppStore();
+
+  // Check if user is already logged in on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            useAppStore.getState().login(data.user);
+          }
+        }
+      } catch {
+        // Not authenticated, stay on landing
+      }
+    };
+    checkAuth();
+  }, []);
+
+  // If authenticated, show dashboard
+  if (isAuthenticated) {
+    return (
+      <>
+        <Dashboard />
+        <AuthModal />
+      </>
+    );
+  }
+
+  // Otherwise show landing page
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      gap: '2rem',
-      padding: '1rem'
-    }}>
-      <div style={{
-        position: 'relative',
-        width: '6rem',
-        height: '6rem'
-      }}>
-        <img
-          src="/logo.svg"
-          alt="Z.ai Logo"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain'
-          }}
-        />
-      </div>
+    <div className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <main className="flex-1">
+        <HeroSection />
+        <TeacherSection />
+        <CoursesSection />
+        <HowItWorksSection />
+        <TestimonialsSection />
+        <ContactSection />
+      </main>
+      <Footer />
+      <AuthModal />
     </div>
-  )
+  );
 }
