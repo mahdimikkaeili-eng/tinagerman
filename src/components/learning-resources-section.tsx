@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageSquare, PenTool, Volume2, ChevronRight, ChevronLeft, Lightbulb, Languages, GraduationCap } from "lucide-react";
+import { BookOpen, MessageSquare, PenTool, Volume2, VolumeX, ChevronRight, ChevronLeft, Lightbulb, Languages, GraduationCap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -231,9 +231,45 @@ const levelColors: Record<string, { text: string; bg: string; border: string }> 
   B2: { text: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
 };
 
+// ─── Text-to-Speech using Web Speech API ──────────────────────────
+function speakGerman(text: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      reject(new Error("Speech synthesis not supported"));
+      return;
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "de-DE";
+    utterance.rate = 0.85; // slightly slower for learners
+    utterance.pitch = 1;
+
+    // Try to find a German voice
+    const voices = window.speechSynthesis.getVoices();
+    const germanVoice = voices.find(
+      (v) => v.lang.startsWith("de") && v.localService
+    ) || voices.find(
+      (v) => v.lang.startsWith("de")
+    );
+
+    if (germanVoice) {
+      utterance.voice = germanVoice;
+    }
+
+    utterance.onend = () => resolve();
+    utterance.onerror = () => reject(new Error("Speech failed"));
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 export function LearningResourcesSection() {
   const { language } = useAppStore();
   const [phrasePage, setPhrasePage] = useState(0);
+  const [speakingPhrase, setSpeakingPhrase] = useState<number | null>(null);
+  const [speakingVocab, setSpeakingVocab] = useState<string | null>(null);
   const phrasesPerPage = 5;
   const totalPages = Math.ceil(phrases[language].length / phrasesPerPage);
 
@@ -244,6 +280,20 @@ export function LearningResourcesSection() {
 
   const currentGrammar = grammarTips[language];
   const currentVocab = vocabulary[language];
+
+  const handleSpeak = useCallback(async (text: string, type: "phrase" | "vocab", id: number | string) => {
+    try {
+      if (type === "phrase") setSpeakingPhrase(id as number);
+      if (type === "vocab") setSpeakingVocab(id as string);
+
+      await speakGerman(text);
+    } catch {
+      // Speech not supported, silently fail
+    } finally {
+      if (type === "phrase") setSpeakingPhrase(null);
+      if (type === "vocab") setSpeakingVocab(null);
+    }
+  }, []);
 
   return (
     <section id="resources" className="py-20 md:py-28 bg-white">
@@ -318,28 +368,47 @@ export function LearningResourcesSection() {
                       transition={{ duration: 0.3 }}
                       className="space-y-3"
                     >
-                      {currentPhrases.map((phrase, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all"
-                        >
-                          <Badge
-                            variant="outline"
-                            className={`${levelColors[phrase.level].bg} ${levelColors[phrase.level].text} ${levelColors[phrase.level].border} font-bold shrink-0`}
+                      {currentPhrases.map((phrase, idx) => {
+                        const globalIdx = phrasePage * phrasesPerPage + idx;
+                        const isSpeaking = speakingPhrase === globalIdx;
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all"
                           >
-                            {phrase.level}
-                          </Badge>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-slate-900 text-base">
-                              {phrase.german}
-                            </p>
-                            <p className="text-sm text-slate-500 mt-0.5">
-                              {phrase.english}
-                            </p>
+                            <Badge
+                              variant="outline"
+                              className={`${levelColors[phrase.level].bg} ${levelColors[phrase.level].text} ${levelColors[phrase.level].border} font-bold shrink-0`}
+                            >
+                              {phrase.level}
+                            </Badge>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-semibold text-base ${isSpeaking ? "text-emerald-600" : "text-slate-900"}`}>
+                                {phrase.german}
+                              </p>
+                              <p className="text-sm text-slate-500 mt-0.5">
+                                {phrase.english}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleSpeak(phrase.german, "phrase", globalIdx)}
+                              className={`shrink-0 p-2 rounded-full transition-all ${
+                                isSpeaking
+                                  ? "bg-emerald-100 text-emerald-600"
+                                  : "text-slate-300 hover:text-emerald-500 hover:bg-emerald-50"
+                              }`}
+                              aria-label={isSpeaking ? "Playing..." : `Listen to "${phrase.german}"`}
+                              title={isSpeaking ? "Playing..." : "Listen to pronunciation"}
+                            >
+                              {isSpeaking ? (
+                                <VolumeX className="size-4 animate-pulse" />
+                              ) : (
+                                <Volume2 className="size-4" />
+                              )}
+                            </button>
                           </div>
-                          <Volume2 className="size-4 text-slate-300 shrink-0" />
-                        </div>
-                      ))}
+                        );
+                      })}
                     </motion.div>
                   </AnimatePresence>
 
@@ -456,19 +525,43 @@ export function LearningResourcesSection() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {category.words.map((word, wIdx) => (
-                        <div
-                          key={wIdx}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-emerald-50/50 transition-colors"
-                        >
-                          <span className="font-medium text-slate-900 text-sm">
-                            {word.german}
-                          </span>
-                          <span className="text-slate-500 text-sm">
-                            {word.english}
-                          </span>
-                        </div>
-                      ))}
+                      {category.words.map((word, wIdx) => {
+                        const vocabId = `${category.category}-${wIdx}`;
+                        const isSpeakingV = speakingVocab === vocabId;
+                        return (
+                          <div
+                            key={wIdx}
+                            className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-emerald-50/50 transition-colors gap-2"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`font-medium text-sm ${isSpeakingV ? "text-emerald-600" : "text-slate-900"}`}>
+                                {word.german}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-slate-500 text-sm">
+                                {word.english}
+                              </span>
+                              <button
+                                onClick={() => handleSpeak(word.german, "vocab", vocabId)}
+                                className={`p-1 rounded-full transition-all ${
+                                  isSpeakingV
+                                    ? "bg-emerald-100 text-emerald-600"
+                                    : "text-slate-300 hover:text-emerald-500"
+                                }`}
+                                aria-label={`Listen to "${word.german}"`}
+                                title="Listen to pronunciation"
+                              >
+                                {isSpeakingV ? (
+                                  <VolumeX className="size-3 animate-pulse" />
+                                ) : (
+                                  <Volume2 className="size-3" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </CardContent>
                   </Card>
                 </motion.div>
