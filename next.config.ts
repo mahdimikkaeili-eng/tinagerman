@@ -27,6 +27,52 @@ const nextConfig: NextConfig = {
   },
 
   reactStrictMode: false,
+
+  // ریدایرکت‌ها - Redirects
+  async redirects() {
+    return [
+      // ریدایرکت www به non-www - Redirect www to non-www
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.tinagerman.com',
+          },
+        ],
+        destination: 'https://tinagerman.com/:path*',
+        permanent: true,
+      },
+      // ریدایرکت HTTP به HTTPS handled by server/proxy
+    ];
+  },
+
+  // هدرهای امنیتی و سئو - Security and SEO headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
