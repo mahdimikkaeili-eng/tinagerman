@@ -122,3 +122,31 @@ Stage Summary:
 - ESLint passes with no errors
 - Dev server running without issues
 - Both sections fully bilingual (EN/DE) with consistent emerald design
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: Add SEO optimization and Learning Resources section
+
+Work Log:
+- Enhanced layout.tsx with comprehensive SEO: JSON-LD structured data (Organization, Course x4, FAQPage), canonical URL, hreflang tags, Open Graph images, robots metadata, 19 keywords
+- Created src/app/sitemap.ts — auto-generated sitemap for Google
+- Created src/app/robots.ts — allows all pages, blocks /api/
+- Created src/components/learning-resources-section.tsx with 3 tabs:
+  - Common Phrases: 15 German phrases (A1-B2) with pagination
+  - Grammar Tips: 6 tips (articles, V2 rule, separable verbs, weil/dass, Konjunktiv II, Passiv)
+  - Vocabulary: 4 categories (Food, Travel, Work, Daily Life) with 24 words
+- Added Text-to-Speech using Web Speech API (SpeechSynthesis):
+  - Clickable speaker icon on each phrase and vocabulary word
+  - German voice (de-DE), rate 0.85 for learner-friendly speed
+  - Visual feedback: green highlight + animated VolumeX when speaking
+- Added navFaq and navResources keys to i18n (EN/DE)
+- Added Resources and FAQ nav links to header.tsx
+- Fixed "Tinys" → "Tinas" typo in DE FAQ translation
+- All changes pushed to GitHub (3 commits)
+
+Stage Summary:
+- Full SEO setup: structured data, sitemap, robots, meta tags
+- Learning resources section with TTS pronunciation for German content
+- Bilingual support (EN/DE) for all new content
+- Build passes cleanly, all routes including /sitemap.xml and /robots.txt generated
