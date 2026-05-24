@@ -15,7 +15,7 @@ model User {
   role         String   @default("student") // "student" | "teacher" | "admin"
   phone        String?
   nativeLanguage String? // "en", "de", "fa", etc.
-  germanLevel  String? // "A1", "A2", "B1", "B2", "C1", "C2"
+  germanLevel  String? // "A1", "A2", "B1", "B2"
   bio          String?
   avatar       String?
   timezone     String? @default("Europe/Vienna")
@@ -36,7 +36,7 @@ model Course {
   titleDe     String   // German title
   description String
   descriptionDe String // German description
-  level       String   // "A1", "A2", "B1", "B2", "C1"
+  level       String   // "A1", "A2", "B1", "B2"
   duration    Int      // minutes per session
   priceNote   String   @default("Price discussed in first session")
   language    String   @default("de") // taught language

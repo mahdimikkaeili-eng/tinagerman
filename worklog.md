@@ -1,101 +1,66 @@
-# Deutsch mit Tina - Project Worklog
-
 ---
 Task ID: 1
-Agent: Main Developer
-Task: Set up database schema
+Agent: Main Agent
+Task: Fix all C1 references to B2 throughout the site
 
 Work Log:
-- Created Prisma schema with User, Course, Booking, Message, Homework, SiteConfig models
-- Pushed schema to SQLite database
-- Seeded database with Tina as teacher and 5 courses (A1-C1)
+- Changed footer text from "A1 to C1" to "A1 to B2" (both EN and DE)
+- Removed C1 and C2 from germanLevels in auth-modal.tsx
+- Removed C1 and C2 from germanLevels in dashboard.tsx
+- Removed C1 course from seed data
+- Updated Prisma schema comments to reflect A1-B2 range only
 
 Stage Summary:
-- Database schema finalized with all required models
-- Tina registered as teacher (tina@tinagerman.com)
-- 5 bilingual courses created (A1-C1)
+- All C1/C2 references removed from the site
+- Database re-seeded with only A1, A2, B1, B2 courses
 
 ---
-Task ID: 2-a
-Agent: Frontend Developer
-Task: Build landing page with Preply-like design
+Task ID: 2
+Agent: Main Agent
+Task: Fix teacher-dashboard.tsx parsing error and rebuild it
 
 Work Log:
-- Created Zustand store for app state management
-- Created i18n translation system with 50+ EN/DE keys
-- Built Header with German flag logo, smooth scroll nav, EN/DE switcher, mobile menu
-- Built Hero section with animated floating elements, teacher card preview, CTAs
-- Built Teacher section with Tina's profile, credentials, teaching highlights
-- Built Courses section with 5 color-coded course cards (A1-C1)
-- Built How It Works section with 3 steps and connecting line
-- Built Testimonials placeholder section
-- Built Contact section with WhatsApp and Telegram cards
-- Built Footer with brand, quick links, social links, copyright
+- Found parsing error at line 1209: `)}` should have been `})}` for .map() callback
+- Decided to rewrite the entire teacher-dashboard.tsx from scratch to fix all errors
+- Rebuilt with clean structure: Overview, Bookings, Students, Chat, Schedule tabs
+- Fixed duplicate i18n key names (teacherStudents -> teacherStudentsTab, etc.)
+- Added Google Calendar integration to teacher booking cards
+- Added CalendarPlus icon import
 
 Stage Summary:
-- Full landing page with 7 sections completed
-- Bilingual EN/DE support implemented
-- Emerald-600 primary color with amber-500 accents
-- Framer Motion animations throughout
-- Mobile-responsive design
+- Teacher dashboard fully functional with 5 tabs
+- Calendar link integration in bookings tab
+- Clean TypeScript with no parsing errors
 
 ---
-Task ID: 2-b
-Agent: Backend Developer
-Task: Build API routes for auth, courses, bookings, messages, homework
+Task ID: 3
+Agent: Main Agent
+Task: Add Google Calendar integration
 
 Work Log:
-- Created auth routes: register, login, me, logout
-- Created courses routes: list with lang filter, get by id
-- Created bookings routes: create, list, update status
-- Created messages routes: list, send, conversations
-- Created homework routes: list, create, update
-- Created seed route for initial data
-- Created teacher and availability routes
-- Implemented password hashing with SHA-256 + salt
-- Cookie-based session management
+- Created /src/lib/calendar.ts with generateGoogleCalendarUrl and generateIcsContent utilities
+- Created /src/app/api/calendar/ics/route.ts for .ics file download API
+- Added "Add to Calendar" button to student dashboard upcoming bookings
+- Added CalendarPlus icon import to dashboard.tsx
+- Added downloadIcs i18n key in both EN and DE
 
 Stage Summary:
-- All backend API routes created and tested
-- Auth system with registration, login, session cookies
-- Password hashing and session management implemented
-
----
-Task ID: 3-a
-Agent: Full-stack Developer
-Task: Build auth modal, dashboard, booking modal
-
-Work Log:
-- Created Auth Modal with login/signup tabs
-- Created Dashboard with sidebar navigation
-- Created Profile tab with edit/save functionality
-- Created Bookings tab with upcoming/past views
-- Created Chat tab with Socket.io real-time messaging
-- Created Homework tab with status tracking
-- Created Booking Modal with course/date/time selection
-- Updated page.tsx to show Dashboard when authenticated
-- Added 50+ new translation keys for EN/DE
-
-Stage Summary:
-- Full authentication flow (register → login → dashboard)
-- Dashboard with 4 tabs: Profile, Bookings, Chat, Homework
-- Real-time chat via Socket.io on port 3003
-- Booking system with trial lesson support
+- Students can click "Add to Calendar" to add bookings to Google Calendar
+- Teacher dashboard also has calendar link for each booking
+- .ics download API available at /api/calendar/ics?bookingId=xxx
 
 ---
 Task ID: 4
-Agent: Chat Service Developer
-Task: Build WebSocket chat service
+Agent: Main Agent
+Task: Fix remaining TypeScript errors
 
 Work Log:
-- Created mini-service at mini-services/chat-service/
-- Socket.io server on port 3003
-- Implemented join, joinRoom, sendMessage, typing, markRead events
-- Room-based messaging with sorted user IDs
-- In-memory message store
-- Graceful shutdown handling
+- Fixed dashboard.tsx invalid type cast (keyof typeof import)
+- Fixed hero-section.tsx unused @ts-expect-error directive
+- Fixed seed/route.ts courses array type (never[] -> proper type)
+- Re-seeded database after fixes
 
 Stage Summary:
-- Chat service running on port 3003
-- Real-time messaging with Socket.io
-- Typing indicators and read receipts
+- All TypeScript errors in src/ fixed
+- Lint passes cleanly
+- Dev server running without errors

@@ -38,8 +38,8 @@ export function Footer() {
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
               {language === "en"
-                ? "Personalized German lessons from A1 to C1. Learn with a certified teacher from Austria."
-                : "Personalisierter Deutschunterricht von A1 bis C1. Lernen Sie mit einer zertifizierten Lehrerin aus Österreich."}
+                ? "Personalized German lessons from A1 to B2. Learn with a certified teacher from Austria."
+                : "Personalisierter Deutschunterricht von A1 bis B2. Lernen Sie mit einer zertifizierten Lehrerin aus Österreich."}
             </p>
           </div>
 

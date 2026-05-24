@@ -150,8 +150,7 @@ export function HeroSection() {
                 <div className="h-32 bg-gradient-to-br from-emerald-400 to-emerald-600 relative">
                   <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgMjAgTDIwIDBMNDAgMjBMMjAgNDBaIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2cpIi8+PC9zdmc+')] opacity-30" />
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
-                    <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-4 border-white">
-                      {/* @ts-expect-error Next.js Image */}
+                    <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-4 border-white bg-emerald-200">
                       <img
                         src="/tina-avatar.jpg"
                         alt="Tina - German Teacher"

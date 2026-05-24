@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,8 +92,6 @@ const germanLevels = [
   { value: "A2", label: "A2" },
   { value: "B1", label: "B1" },
   { value: "B2", label: "B2" },
-  { value: "C1", label: "C1" },
-  { value: "C2", label: "C2" },
 ];
 
 const statusColors: Record<string, string> = {
@@ -862,7 +861,7 @@ export function Dashboard() {
                                   "bg-slate-100 text-slate-600"
                                 }
                               >
-                                {t(booking.status as keyof typeof import("@/lib/i18n").translations.en, language) || booking.status}
+                                {t(booking.status as "pending" | "confirmed" | "completed" | "cancelled", language)}
                               </Badge>
                               {booking.meetLink && (
                                 <Button
@@ -875,6 +874,23 @@ export function Dashboard() {
                                 >
                                   <Video className="size-3 mr-1" />
                                   {t("joinMeeting", language)}
+                                </Button>
+                              )}
+                              {(booking.status === "confirmed" || booking.status === "pending") && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-slate-500 hover:text-emerald-600"
+                                  onClick={() => {
+                                    const startDate = new Date(`${booking.date}T${booking.time}:00`);
+                                    const endDate = new Date(startDate.getTime() + 50 * 60 * 1000);
+                                    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+                                    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${booking.course.level} German Lesson - Deutsch mit Tina`)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(`German lesson with Tina\nLevel: ${booking.course.level}${booking.isTrial ? "\n(Free Trial)" : ""}`)}&ctz=Europe/Vienna${booking.meetLink ? `&location=${encodeURIComponent(booking.meetLink)}` : ""}`;
+                                    window.open(url, "_blank");
+                                  }}
+                                >
+                                  <CalendarPlus className="size-3 mr-1" />
+                                  {t("addToCalendar", language)}
                                 </Button>
                               )}
                             </div>
@@ -1114,7 +1130,7 @@ export function Dashboard() {
                                     "bg-slate-100 text-slate-600"
                                   }
                                 >
-                                  {t(hw.status as keyof typeof import("@/lib/i18n").translations.en, language) || hw.status}
+                                  {t(hw.status as "assigned" | "submitted" | "reviewed", language)}
                                 </Badge>
                               </div>
                               <p className="text-sm text-slate-500 mt-1 line-clamp-2">

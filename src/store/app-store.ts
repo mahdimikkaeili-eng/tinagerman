@@ -13,6 +13,7 @@ interface User {
   nativeLanguage?: string;
   germanLevel?: string;
   isTrialUsed?: boolean;
+  role?: string; // "student" | "teacher"
 }
 
 interface AppState {

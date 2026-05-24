@@ -12,9 +12,10 @@ import { ContactSection } from "@/components/contact-section";
 import { Footer } from "@/components/footer";
 import { AuthModal } from "@/components/auth-modal";
 import { Dashboard } from "@/components/dashboard";
+import { TeacherDashboard } from "@/components/teacher-dashboard";
 
 export default function Home() {
-  const { isAuthenticated } = useAppStore();
+  const { isAuthenticated, user } = useAppStore();
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function Home() {
   if (isAuthenticated) {
     return (
       <>
-        <Dashboard />
+        {user?.role === 'teacher' ? <TeacherDashboard /> : <Dashboard />}
         <AuthModal />
       </>
     );

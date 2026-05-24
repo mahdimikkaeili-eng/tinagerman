@@ -99,21 +99,10 @@ export async function POST(request: Request) {
         category: 'conversation',
         isActive: true,
       },
-      {
-        title: 'German C1 – Advanced / Exam Prep',
-        titleDe: 'Deutsch C1 – Fortgeschritten / Prüfungsvorbereitung',
-        description: 'Master German at an advanced level. Perfect for exam preparation (Goethe, Telc, ÖSD), professional communication, and understanding implicit meaning in complex texts.',
-        descriptionDe: 'Meistern Sie Deutsch auf fortgeschrittenem Niveau. Perfekt für Prüfungsvorbereitung (Goethe, Telc, ÖSD), professionelle Kommunikation und das Verstehen impliziter Bedeutungen in komplexen Texten.',
-        level: 'C1',
-        duration: 60,
-        priceNote: 'Price discussed in first session',
-        language: 'de',
-        category: 'exam-prep',
-        isActive: true,
-      },
+
     ]
 
-    const courses = []
+    const courses: { id: string; level: string; title: string; titleDe: string; description: string; descriptionDe: string; duration: number; priceNote: string; language: string; category: string | null; isActive: boolean; createdAt: Date; updatedAt: Date }[] = []
     for (const data of courseData) {
       const existing = await db.course.findFirst({ where: { level: data.level } })
       if (!existing) {
