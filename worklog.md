@@ -64,3 +64,23 @@ Stage Summary:
 - All TypeScript errors in src/ fixed
 - Lint passes cleanly
 - Dev server running without errors
+
+---
+Task ID: 5
+Agent: Deployment Agent
+Task: Create production deployment files for the Next.js project
+
+Work Log:
+- Created /ecosystem.config.js - PM2 process manager config for web (port 3000) and chat (port 3003) with auto-restart, memory limits, and log settings
+- Created /deploy.sh - Full deployment script with 12 steps: prerequisites check, DB backup, git pull, bun install, Prisma generate/db push, Next.js build, static files copy, PM2 restart, status display
+- Created /.env.example - Environment variables template with DATABASE_URL, NODE_ENV, NEXT_PUBLIC_SITE_URL, CHAT_PORT, AUTH_SECRET
+- Updated /next.config.ts - Added serverExternalPackages (@prisma/client, sharp), images remotePatterns for tinagerman.com, kept output: "standalone"
+- Created /mini-services/chat-service/ecosystem.config.js - Separate PM2 config for chat service only
+- Created /scripts/setup-server.sh - Comprehensive server setup: system update, Node.js 20.x, Bun, PM2, app directory, UFW firewall, Nginx reverse proxy with WebSocket support, Certbot SSL, PM2 startup service
+- Created /scripts/cyberpanel-setup.sh - CyberPanel-specific guide: website creation steps, DNS setup, Nginx vHost config, OpenLiteSpeed rewrite rules, WebSocket proxy config, SSL setup, auto-config option
+
+Stage Summary:
+- 7 deployment files created covering full production deployment lifecycle
+- All scripts include Persian (Farsi) comments for the user
+- Lint passes cleanly after next.config.ts update
+- Dev server restarted and running after next.config.ts change
