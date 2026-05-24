@@ -13,6 +13,7 @@ const navItems = [
   { key: "placement", labelKey: "navPlacement" as const, href: "#placement-test" },
   { key: "about", labelKey: "navAbout" as const, href: "#about" },
   { key: "contact", labelKey: "navContact" as const, href: "#contact" },
+  { key: "faq", labelKey: "navFaq" as const, href: "#faq" },
 ];
 
 export function Header() {

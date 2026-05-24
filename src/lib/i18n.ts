@@ -8,6 +8,7 @@ const translations = {
     navAbout: "About",
     navContact: "Contact",
     navPlacement: "Placement Test",
+    navFaq: "FAQ",
     login: "Log In",
     signup: "Sign Up",
 
@@ -219,6 +220,7 @@ const translations = {
     navAbout: "Über mich",
     navContact: "Kontakt",
     navPlacement: "Einstufungstest",
+    navFaq: "FAQ",
     login: "Anmelden",
     signup: "Registrieren",
 
@@ -421,7 +423,7 @@ const translations = {
     faqQ7: "Kann ich stornieren oder verschieben?",
     faqA7: "Selbstverständlich! Sie können bis zu 24 Stunden vor Ihrer Unterrichtsstunde kostenlos stornieren oder verschieben. Stornierungen innerhalb von 24 Stunden können mit der vollen Unterrichtsgebühr berechnet werden.",
     faqQ8: "Was, wenn ich kompletter Anfänger bin?",
-    faqA8: "Das ist völlig in Ordnung! Viele Schüler beginnen als komplette Anfänger. Tinys A1-Kurs ist speziell für Menschen ohne Vorkenntnisse konzipiert. Sie führt Sie Schritt für Schritt, und der Unterricht kann teilweise auf Englisch gehalten werden, bis Sie sich sicher genug fühlen.",
+    faqA8: "Das ist völlig in Ordnung! Viele Schüler beginnen als komplette Anfänger. Tinas A1-Kurs ist speziell für Menschen ohne Vorkenntnisse konzipiert. Sie führt Sie Schritt für Schritt, und der Unterricht kann teilweise auf Englisch gehalten werden, bis Sie sich sicher genug fühlen.",
   },
 } as const;
 
