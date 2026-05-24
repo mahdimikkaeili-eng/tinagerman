@@ -150,8 +150,13 @@ export function HeroSection() {
                 <div className="h-32 bg-gradient-to-br from-emerald-400 to-emerald-600 relative">
                   <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgMjAgTDIwIDBMNDAgMjBMMjAgNDBaIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2cpIi8+PC9zdmc+')] opacity-30" />
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-                      <span className="text-3xl">👩‍🏫</span>
+                    <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border-4 border-white">
+                      {/* @ts-expect-error Next.js Image */}
+                      <img
+                        src="/tina-avatar.jpg"
+                        alt="Tina - German Teacher"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                 </div>
@@ -166,7 +171,7 @@ export function HeroSection() {
                   {/* Mini stats */}
                   <div className="grid grid-cols-3 gap-2 mt-5">
                     <div className="bg-emerald-50 rounded-xl p-2.5">
-                      <div className="text-lg font-bold text-emerald-600">C1</div>
+                      <div className="text-lg font-bold text-emerald-600">B2</div>
                       <div className="text-[10px] text-slate-400">
                         {language === "en" ? "Level" : "Niveau"}
                       </div>
@@ -204,7 +209,7 @@ export function HeroSection() {
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
                 <span className="text-2xl">🇩🇪</span>
-                <span className="text-sm font-semibold text-slate-700">A1→C1</span>
+                <span className="text-sm font-semibold text-slate-700">A1→B2</span>
               </motion.div>
 
               <motion.div

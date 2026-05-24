@@ -14,16 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Deutsch mit Tina — Learn German Online | Personalized 1-on-1 Lessons A1-C1",
+  title: "Deutsch mit Tina — Learn German Online | Personalized 1-on-1 Lessons A1-B2",
   description:
-    "Learn German with Tina — personalized 1-on-1 German lessons from A1 to C1. Certified teacher, 200+ students, 3+ years experience. Book your free trial lesson today!",
+    "Learn German with Tina — personalized 1-on-1 German lessons from A1 to B2. Certified teacher, 200+ students, 3+ years experience. Book your free trial lesson today!",
   keywords: [
     "learn German",
     "German lessons online",
     "Deutsch lernen",
     "German teacher",
     "A1 German",
-    "C1 German",
+    "B2 German",
     "online German course",
     "German tutoring",
     "Deutsch mit Tina",
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Deutsch mit Tina" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/tina-avatar.jpg",
   },
   openGraph: {
     title: "Deutsch mit Tina — Learn German Online",
     description:
-      "Personalized 1-on-1 German lessons from A1 to C1. Book your free trial lesson today!",
+      "Personalized 1-on-1 German lessons from A1 to B2. Book your free trial lesson today!",
     url: "https://tinagerman.com",
     siteName: "Deutsch mit Tina",
     type: "website",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Deutsch mit Tina — Learn German Online",
     description:
-      "Personalized 1-on-1 German lessons from A1 to C1. Book your free trial lesson today!",
+      "Personalized 1-on-1 German lessons from A1 to B2. Book your free trial lesson today!",
   },
 };
 

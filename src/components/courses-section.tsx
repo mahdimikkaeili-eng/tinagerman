@@ -13,8 +13,8 @@ interface Course {
   levelColor: string;
   bgColor: string;
   borderColor: string;
-  titleKey: "courseA1Title" | "courseA2Title" | "courseB1Title" | "courseB2Title" | "courseC1Title";
-  descKey: "courseA1Desc" | "courseA2Desc" | "courseB1Desc" | "courseB2Desc" | "courseC1Desc";
+  titleKey: "courseA1Title" | "courseA2Title" | "courseB1Title" | "courseB2Title" | "courseB2ExamTitle";
+  descKey: "courseA1Desc" | "courseA2Desc" | "courseB1Desc" | "courseB2Desc" | "courseB2ExamDesc";
   icon: string;
 }
 
@@ -56,12 +56,12 @@ const courses: Course[] = [
     icon: "🏔️",
   },
   {
-    level: "C1",
+    level: "B2",
     levelColor: "text-red-700",
     bgColor: "bg-red-50",
     borderColor: "border-red-200",
-    titleKey: "courseC1Title",
-    descKey: "courseC1Desc",
+    titleKey: "courseB2ExamTitle",
+    descKey: "courseB2ExamDesc",
     icon: "🎓",
   },
 ];
@@ -111,8 +111,8 @@ export function CoursesSection() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {courses.map((course) => (
-            <motion.div key={course.level} variants={cardVariants} whileHover={{ y: -4 }}>
+          {courses.map((course, index) => (
+            <motion.div key={`${course.level}-${index}`} variants={cardVariants} whileHover={{ y: -4 }}>
               <Card className="h-full flex flex-col border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
                 {/* Level header bar */}
                 <div className={`${course.bgColor} px-6 pt-5 pb-3`}>

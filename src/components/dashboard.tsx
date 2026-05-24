@@ -945,9 +945,11 @@ export function Dashboard() {
                 <CardHeader className="pb-3 border-b">
                   <div className="flex items-center gap-3">
                     <Avatar className="size-10 bg-emerald-100">
-                      <AvatarFallback className="bg-emerald-100 text-emerald-700 font-semibold">
-                        T
-                      </AvatarFallback>
+                      <img
+                        src="/tina-avatar.jpg"
+                        alt="Tina"
+                        className="w-full h-full object-cover rounded-full"
+                      />
                     </Avatar>
                     <div>
                       <CardTitle className="text-base">

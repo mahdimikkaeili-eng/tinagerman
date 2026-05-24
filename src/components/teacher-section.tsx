@@ -13,8 +13,8 @@ import { t } from "@/lib/i18n";
 const credentials = [
   {
     icon: Award,
-    labelEn: "C1 Certificate",
-    labelDe: "C1-Zertifikat",
+    labelEn: "B2 Certificate",
+    labelDe: "B2-Zertifikat",
   },
   {
     icon: Users,
@@ -59,9 +59,11 @@ export function TeacherSection() {
                 {/* Left — Photo & Quick Info */}
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-8 flex flex-col items-center justify-center text-center">
                   <Avatar className="w-32 h-32 border-4 border-white shadow-xl mb-4">
-                    <AvatarFallback className="bg-emerald-600 text-white text-4xl font-bold">
-                      T
-                    </AvatarFallback>
+                    <img
+                      src="/tina-avatar.jpg"
+                      alt="Tina - German Teacher"
+                      className="w-full h-full object-cover rounded-full"
+                    />
                   </Avatar>
 
                   <h3 className="text-2xl font-bold text-slate-900">

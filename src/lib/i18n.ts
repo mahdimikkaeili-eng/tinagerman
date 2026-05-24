@@ -12,7 +12,7 @@ const translations = {
 
     // Hero
     heroTitle: "Learn German with Tina",
-    heroSubtitle: "Personalized 1-on-1 German lessons from A1 to C1",
+    heroSubtitle: "Personalized 1-on-1 German lessons from A1 to B2",
     heroCta: "Book Free Trial",
     heroSecondaryCta: "View Courses",
     heroBadge: "🇩🇪 Your German journey starts here",
@@ -20,11 +20,11 @@ const translations = {
     // Teacher
     teacherSectionTitle: "Meet Your Teacher",
     teacherName: "Tina",
-    teacherCredentials: "C1 Certificate, 3+ years teaching experience",
+    teacherCredentials: "B2 Certificate, 3+ years teaching experience",
     teacherStudents: "200+ Students",
     teacherLanguages: "German, English",
     teacherRating: "5.0",
-    teacherBio: "Hi! I'm Tina, a passionate German teacher from Austria. I help students of all levels achieve their language goals through personalized, engaging lessons. Whether you're a complete beginner or preparing for a C1 exam, I'll create a learning plan that fits your needs.",
+    teacherBio: "Hi! I'm Tina, a passionate German teacher from Austria. I help students of all levels achieve their language goals through personalized, engaging lessons. Whether you're a complete beginner or preparing for a B2 exam, I'll create a learning plan that fits your needs.",
     teacherCta: "Book Trial Lesson",
 
     // Courses
@@ -38,8 +38,8 @@ const translations = {
     courseB1Desc: "Express yourself confidently! Discuss experiences, plans, and opinions. Understand the main points of clear standard input.",
     courseB2Title: "B2 Upper Intermediate",
     courseB2Desc: "Communicate fluently! Engage in complex discussions, understand specialized texts, and express nuanced viewpoints.",
-    courseC1Title: "C1 Exam Preparation",
-    courseC1Desc: "Master the language! Prepare for official exams with advanced grammar, academic vocabulary, and professional communication skills.",
+    courseB2ExamTitle: "B2 Exam Preparation",
+    courseB2ExamDesc: "Prepare for your B2 exam with advanced grammar, academic vocabulary, and professional communication skills.",
     courseDuration: "50 min per lesson",
     coursePrice: "Price discussed in first session",
     courseBookNow: "Book Now",
@@ -154,7 +154,7 @@ const translations = {
 
     // Hero
     heroTitle: "Lerne Deutsch mit Tina",
-    heroSubtitle: "Personalisierter 1-zu-1 Deutschunterricht von A1 bis C1",
+    heroSubtitle: "Personalisierter 1-zu-1 Deutschunterricht von A1 bis B2",
     heroCta: "Kostenlose Probestunde",
     heroSecondaryCta: "Kurse ansehen",
     heroBadge: "🇩🇪 Ihre Deutschreise beginnt hier",
@@ -162,11 +162,11 @@ const translations = {
     // Teacher
     teacherSectionTitle: "Lernen Sie Ihre Lehrerin kennen",
     teacherName: "Tina",
-    teacherCredentials: "C1-Zertifikat, 3+ Jahre Lehrerfahrung",
+    teacherCredentials: "B2-Zertifikat, 3+ Jahre Lehrerfahrung",
     teacherStudents: "200+ Schüler",
     teacherLanguages: "Deutsch, Englisch",
     teacherRating: "5,0",
-    teacherBio: "Hallo! Ich bin Tina, eine leidenschaftliche Deutschlehrerin aus Österreich. Ich helfe Schülern aller Niveaustufen, ihre Sprachziele durch personalisierten, spannenden Unterricht zu erreichen. Ob Sie Anfänger sind oder sich auf eine C1-Prüfung vorbereiten — ich erstelle einen Lernplan, der zu Ihnen passt.",
+    teacherBio: "Hallo! Ich bin Tina, eine leidenschaftliche Deutschlehrerin aus Österreich. Ich helfe Schülern aller Niveaustufen, ihre Sprachziele durch personalisierten, spannenden Unterricht zu erreichen. Ob Sie Anfänger sind oder sich auf eine B2-Prüfung vorbereiten — ich erstelle einen Lernplan, der zu Ihnen passt.",
     teacherCta: "Probestunde buchen",
 
     // Courses
@@ -180,8 +180,8 @@ const translations = {
     courseB1Desc: "Drücken Sie sich selbstbewusst aus! Diskutieren Sie über Erfahrungen, Pläne und Meinungen. Verstehen Sie die Hauptpunkte klarer Standardsprache.",
     courseB2Title: "B2 Fortgeschritten Deutsch",
     courseB2Desc: "Kommunizieren Sie fließend! Führen Sie komplexe Diskussionen, verstehen Sie fachspezifische Texte und drücken Sie nuancierte Standpunkte aus.",
-    courseC1Title: "C1 Prüfungsvorbereitung",
-    courseC1Desc: "Meistern Sie die Sprache! Bereiten Sie sich auf offizielle Prüfungen mit fortgeschrittener Grammatik, akademischem Wortschatz und professionellen Kommunikationsfähigkeiten vor.",
+    courseB2ExamTitle: "B2 Prüfungsvorbereitung",
+    courseB2ExamDesc: "Bereiten Sie sich auf Ihre B2-Prüfung mit fortgeschrittener Grammatik, akademischem Wortschatz und professionellen Kommunikationsfähigkeiten vor.",
     courseDuration: "50 Min. pro Unterrichtsstunde",
     coursePrice: "Preis wird im ersten Gespräch besprochen",
     courseBookNow: "Jetzt buchen",
