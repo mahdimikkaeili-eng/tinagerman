@@ -218,6 +218,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <meta name="google-site-verification" content="zRqwAoH2gaZrzGCpaC4KCxICoj8mPdcHHQ9vjxl8fX0" />
         <link rel="alternate" hrefLang="de" href="https://tinagerman.com" />
         <link rel="alternate" hrefLang="en" href="https://tinagerman.com" />
         <link rel="alternate" hrefLang="x-default" href="https://tinagerman.com" />
