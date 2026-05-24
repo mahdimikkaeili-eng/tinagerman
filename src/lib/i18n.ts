@@ -212,6 +212,21 @@ const translations = {
     faqA7: "Absolutely! You can cancel or reschedule up to 24 hours before your lesson at no charge. Cancellations within 24 hours may be subject to the full lesson fee.",
     faqQ8: "What if I'm a complete beginner?",
     faqA8: "That's perfectly fine! Many students start as complete beginners. Tina's A1 course is specifically designed for people with no prior German knowledge. She'll guide you step by step, and lessons can be taught partly in English until you feel comfortable.",
+
+    // Learning Resources
+    resourcesTitle: "Free German Learning Resources",
+    resourcesSubtitle: "Useful phrases, grammar tips, and vocabulary to boost your German — updated regularly!",
+    resourcesPhrases: "Common Phrases",
+    resourcesPhrasesShort: "Phrases",
+    resourcesGrammar: "Grammar Tips",
+    resourcesGrammarShort: "Grammar",
+    resourcesVocab: "Vocabulary",
+    resourcesVocabShort: "Vocab",
+    resourcesPhrasesTitle: "Everyday German Phrases",
+    resourcesCtaTitle: "Ready to take your German to the next level?",
+    resourcesCtaDesc: "Take our free placement test and start learning with personalized lessons tailored to your level.",
+    resourcesCtaButton: "Take the Placement Test",
+    navResources: "Resources",
   },
   de: {
     // Header
@@ -424,6 +439,21 @@ const translations = {
     faqA7: "Selbstverständlich! Sie können bis zu 24 Stunden vor Ihrer Unterrichtsstunde kostenlos stornieren oder verschieben. Stornierungen innerhalb von 24 Stunden können mit der vollen Unterrichtsgebühr berechnet werden.",
     faqQ8: "Was, wenn ich kompletter Anfänger bin?",
     faqA8: "Das ist völlig in Ordnung! Viele Schüler beginnen als komplette Anfänger. Tinas A1-Kurs ist speziell für Menschen ohne Vorkenntnisse konzipiert. Sie führt Sie Schritt für Schritt, und der Unterricht kann teilweise auf Englisch gehalten werden, bis Sie sich sicher genug fühlen.",
+
+    // Learning Resources
+    resourcesTitle: "Kostenlose Deutsch-Lernressourcen",
+    resourcesSubtitle: "Nützliche Sätze, Grammatiktipps und Wortschatz für Ihr Deutsch — regelmäßig aktualisiert!",
+    resourcesPhrases: "Alltagsphrasen",
+    resourcesPhrasesShort: "Phrasen",
+    resourcesGrammar: "Grammatiktipps",
+    resourcesGrammarShort: "Grammatik",
+    resourcesVocab: "Wortschatz",
+    resourcesVocabShort: "Wortschatz",
+    resourcesPhrasesTitle: "Deutsche Alltagsphrasen",
+    resourcesCtaTitle: "Bereit, Ihr Deutsch auf die nächste Stufe zu heben?",
+    resourcesCtaDesc: "Machen Sie unseren kostenlosen Einstufungstest und beginnen Sie mit personalisiertem Unterricht, der auf Ihr Niveau zugeschnitten ist.",
+    resourcesCtaButton: "Einstufungstest machen",
+    navResources: "Ressourcen",
   },
 } as const;
 

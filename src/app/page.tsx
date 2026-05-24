@@ -10,6 +10,7 @@ import { HowItWorksSection } from "@/components/how-it-works-section";
 import { TestimonialsSection } from "@/components/testimonials-section";
 import { ContactSection } from "@/components/contact-section";
 import { PlacementTestSection } from "@/components/placement-test-section";
+import { LearningResourcesSection } from "@/components/learning-resources-section";
 import { FaqSection } from "@/components/faq-section";
 import { Footer } from "@/components/footer";
 import { AuthModal } from "@/components/auth-modal";
@@ -56,6 +57,7 @@ export default function Home() {
         <TeacherSection />
         <CoursesSection />
         <PlacementTestSection />
+        <LearningResourcesSection />
         <HowItWorksSection />
         <TestimonialsSection />
         <ContactSection />
