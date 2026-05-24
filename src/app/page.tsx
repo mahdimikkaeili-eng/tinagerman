@@ -9,6 +9,8 @@ import { CoursesSection } from "@/components/courses-section";
 import { HowItWorksSection } from "@/components/how-it-works-section";
 import { TestimonialsSection } from "@/components/testimonials-section";
 import { ContactSection } from "@/components/contact-section";
+import { PlacementTestSection } from "@/components/placement-test-section";
+import { FaqSection } from "@/components/faq-section";
 import { Footer } from "@/components/footer";
 import { AuthModal } from "@/components/auth-modal";
 import { Dashboard } from "@/components/dashboard";
@@ -53,9 +55,11 @@ export default function Home() {
         <HeroSection />
         <TeacherSection />
         <CoursesSection />
+        <PlacementTestSection />
         <HowItWorksSection />
         <TestimonialsSection />
         <ContactSection />
+        <FaqSection />
       </main>
       <Footer />
       <AuthModal />

@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 const navItems = [
   { key: "home", labelKey: "navHome" as const, href: "#home" },
   { key: "courses", labelKey: "navCourses" as const, href: "#courses" },
+  { key: "placement", labelKey: "navPlacement" as const, href: "#placement-test" },
   { key: "about", labelKey: "navAbout" as const, href: "#about" },
   { key: "contact", labelKey: "navContact" as const, href: "#contact" },
 ];

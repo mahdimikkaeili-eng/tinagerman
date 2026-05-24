@@ -84,3 +84,41 @@ Stage Summary:
 - All scripts include Persian (Farsi) comments for the user
 - Lint passes cleanly after next.config.ts update
 - Dev server restarted and running after next.config.ts change
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Create Placement Test and FAQ sections for the landing page
+
+Work Log:
+- Read all existing project files to understand codebase patterns
+- Updated src/lib/i18n.ts with 50+ new translation keys in both EN and DE:
+  - navPlacement, placementTitle/Subtitle/Description/Start/Next/Prev/Submit/Question/Of
+  - placementResultTitle/Level/A1-A2-B1-B2 with descriptions
+  - placementBookLesson, placementRetake
+  - faqTitle, faqSubtitle, faqQ1-Q8, faqA1-A8
+- Created src/components/placement-test-section.tsx:
+  - Section ID: placement-test
+  - 3-step flow: intro → quiz → result with AnimatePresence transitions
+  - 10 real German language questions (A1: Q1-3, A2: Q4-6, B1: Q7-8, B2: Q9-10)
+  - RadioGroup multiple choice with styled option labels
+  - Progress bar and level badges per question
+  - Smart scoring algorithm based on per-level correct counts
+  - Result card with emoji, level color, description, and WhatsApp CTA
+  - Retake test functionality
+- Created src/components/faq-section.tsx:
+  - Section ID: faq
+  - 8 FAQ items using shadcn/ui Accordion
+  - Emoji icons per question, emerald color scheme
+  - Full EN/DE translations
+- Updated src/app/page.tsx:
+  - PlacementTestSection after CoursesSection, before HowItWorksSection
+  - FaqSection after ContactSection, before Footer
+- Updated src/components/header.tsx:
+  - Added "Placement Test" nav item (navPlacement key, #placement-test href)
+
+Stage Summary:
+- All 5 files created/modified successfully
+- ESLint passes with no errors
+- Dev server running without issues
+- Both sections fully bilingual (EN/DE) with consistent emerald design
