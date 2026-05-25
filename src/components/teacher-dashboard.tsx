@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
+import { NotificationBell } from "./notification-bell";
 
 interface TeacherBooking {
   id: string;
@@ -484,6 +485,7 @@ export function TeacherDashboard() {
               </span>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationBell />
               <Button variant="ghost" size="sm" onClick={() => setLanguage(language === "en" ? "de" : "en")} className="text-slate-600 hover:text-emerald-600">
                 <Globe className="size-4 mr-1" />
                 <span className="text-xs font-semibold">{language === "en" ? "DE" : "EN"}</span>

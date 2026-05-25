@@ -48,6 +48,10 @@ interface AppState {
   // Dashboard tab
   activeDashboardTab: string;
   setActiveDashboardTab: (tab: string) => void;
+
+  // Pending action after auth (e.g. redirect to WhatsApp)
+  pendingAction: string | null; // "whatsapp-trial" | "whatsapp-lesson" | null
+  setPendingAction: (action: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -88,4 +92,8 @@ export const useAppStore = create<AppState>((set) => ({
   // Dashboard tab
   activeDashboardTab: "profile",
   setActiveDashboardTab: (activeDashboardTab) => set({ activeDashboardTab }),
+
+  // Pending action after auth
+  pendingAction: null,
+  setPendingAction: (pendingAction) => set({ pendingAction }),
 }));

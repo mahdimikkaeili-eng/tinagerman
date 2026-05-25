@@ -9,10 +9,11 @@ import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
 
 export function PricingSection() {
-  const { language, isAuthenticated, user, setShowAuthModal, setAuthMode } = useAppStore();
+  const { language, isAuthenticated, user, setShowAuthModal, setAuthMode, setPendingAction } = useAppStore();
 
   const handleBookTrial = () => {
     if (!isAuthenticated) {
+      setPendingAction("whatsapp-trial");
       setAuthMode("signup");
       setShowAuthModal(true);
       return;
@@ -26,6 +27,7 @@ export function PricingSection() {
 
   const handleBookLesson = () => {
     if (!isAuthenticated) {
+      setPendingAction("whatsapp-lesson");
       setAuthMode("signup");
       setShowAuthModal(true);
       return;

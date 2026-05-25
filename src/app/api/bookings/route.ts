@@ -121,6 +121,25 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Create notification for the student
+    try {
+      const courseTitle = booking.course?.title || 'German lesson'
+      const courseTitleDe = booking.course?.titleDe || 'Deutschstunde'
+      const isTrialLabel = isTrial ? ' (Free Trial / Kostenlose Probestunde)' : ''
+      await db.notification.create({
+        data: {
+          userId,
+          title: isTrial ? 'Trial Lesson Booked / Probestunde gebucht' : 'Lesson Booked / Unterrichtsstunde gebucht',
+          message: `Your ${courseTitle}${isTrialLabel} has been booked for ${date} at ${time} / Ihre ${courseTitleDe}${isTrialLabel} wurde für den ${date} um ${time} gebucht`,
+          type: 'booking',
+          actionUrl: meetLink,
+          bookingId: booking.id,
+        },
+      })
+    } catch {
+      // Notification creation failure shouldn't block booking
+    }
+
     return NextResponse.json(
       { booking, message: 'Booking created successfully' },
       { status: 201 }

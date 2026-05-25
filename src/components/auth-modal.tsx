@@ -56,6 +56,7 @@ export function AuthModal() {
     setShowAuthModal,
     setAuthMode,
     login,
+    setPendingAction,
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<"login" | "signup">(authMode);
@@ -99,6 +100,9 @@ export function AuthModal() {
       login(data.user);
       setShowAuthModal(false);
       resetForms();
+
+      // Execute pending action after login (e.g. WhatsApp redirect)
+      executePendingAction();
     } catch {
       setLoginError("Network error. Please try again.");
     } finally {
@@ -143,11 +147,37 @@ export function AuthModal() {
       login(data.user);
       setShowAuthModal(false);
       resetForms();
+
+      // Execute pending action after signup (e.g. WhatsApp redirect)
+      executePendingAction();
     } catch {
       setSignupError("Network error. Please try again.");
     } finally {
       setSignupLoading(false);
     }
+  };
+
+  const executePendingAction = () => {
+    const action = useAppStore.getState().pendingAction;
+    if (!action) return;
+
+    // Clear the pending action first
+    setPendingAction(null);
+
+    // Small timeout to let modal close animation finish
+    setTimeout(() => {
+      if (action === "whatsapp-trial") {
+        const message = language === "en"
+          ? "Hi Tina! I'd like to book a free trial lesson."
+          : "Hallo Tina! Ich möchte eine kostenlose Probestunde buchen.";
+        window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+      } else if (action === "whatsapp-lesson") {
+        const message = language === "en"
+          ? "Hi Tina! I'd like to book a German lesson."
+          : "Hallo Tina! Ich möchte eine Deutschstunde buchen.";
+        window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+      }
+    }, 300);
   };
 
   const resetForms = () => {

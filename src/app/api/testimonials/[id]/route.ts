@@ -46,6 +46,22 @@ export async function PATCH(
       },
     })
 
+    // Notify the student about their review approval
+    try {
+      if (isApproved) {
+        await db.notification.create({
+          data: {
+            userId: testimonial.user.id,
+            title: 'Review Approved / Bewertung genehmigt',
+            message: `Your review has been approved and is now visible on the website / Ihre Bewertung wurde genehmigt und ist jetzt auf der Website sichtbar`,
+            type: 'approval',
+          },
+        })
+      }
+    } catch {
+      // Notification failure shouldn't block approval
+    }
+
     return NextResponse.json({ testimonial })
   } catch (error) {
     console.error('Update testimonial error:', error)

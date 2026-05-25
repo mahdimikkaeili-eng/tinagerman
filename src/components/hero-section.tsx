@@ -8,7 +8,7 @@ import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
 
 export function HeroSection() {
-  const { language, isAuthenticated, setShowAuthModal, setAuthMode } = useAppStore();
+  const { language, isAuthenticated, setShowAuthModal, setAuthMode, setPendingAction } = useAppStore();
 
   const handleScrollTo = (id: string) => {
     const el = document.querySelector(id);
@@ -19,6 +19,7 @@ export function HeroSection() {
 
   const handleBookTrial = () => {
     if (!isAuthenticated) {
+      setPendingAction("whatsapp-trial");
       setAuthMode("signup");
       setShowAuthModal(true);
       return;

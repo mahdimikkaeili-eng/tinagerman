@@ -77,6 +77,42 @@ export async function PATCH(
       },
     })
 
+    // Create notification for the student about status change
+    try {
+      let notifTitle = ''
+      let notifMessage = ''
+      let notifType = 'booking'
+
+      if (status === 'confirmed') {
+        notifTitle = 'Booking Confirmed / Buchung bestätigt'
+        notifMessage = `Your ${booking.course?.title || 'lesson'} on ${existingBooking.date} at ${existingBooking.time} has been confirmed / Ihre ${booking.course?.titleDe || 'Unterrichtsstunde'} am ${existingBooking.date} um ${existingBooking.time} wurde bestätigt`
+        notifType = 'booking'
+      } else if (status === 'cancelled') {
+        notifTitle = 'Booking Cancelled / Buchung storniert'
+        notifMessage = `Your ${booking.course?.title || 'lesson'} on ${existingBooking.date} at ${existingBooking.time} has been cancelled / Ihre ${booking.course?.titleDe || 'Unterrichtsstunde'} am ${existingBooking.date} um ${existingBooking.time} wurde storniert`
+        notifType = 'booking'
+      } else if (status === 'completed') {
+        notifTitle = 'Lesson Completed / Unterrichtsstunde abgeschlossen'
+        notifMessage = `Your ${booking.course?.title || 'lesson'} on ${existingBooking.date} has been marked as completed / Ihre ${booking.course?.titleDe || 'Unterrichtsstunde'} am ${existingBooking.date} wurde als abgeschlossen markiert`
+        notifType = 'info'
+      }
+
+      if (notifTitle) {
+        await db.notification.create({
+          data: {
+            userId: booking.user.id,
+            title: notifTitle,
+            message: notifMessage,
+            type: notifType,
+            actionUrl: existingBooking.meetLink || null,
+            bookingId: existingBooking.id,
+          },
+        })
+      }
+    } catch {
+      // Notification creation failure shouldn't block booking update
+    }
+
     return NextResponse.json({ booking, message: 'Booking status updated successfully' })
   } catch (error) {
     console.error('Update teacher booking error:', error)

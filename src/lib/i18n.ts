@@ -232,6 +232,27 @@ const translations = {
     // Pricing
     pricingTitle: "Simple, Transparent Pricing",
     pricingSubtitle: "Start with a free trial, then choose the plan that fits your learning goals",
+
+    // Notifications
+    notificationsTitle: "Notifications",
+    notificationReminder: "Class Reminder",
+    notificationReminderMessage: "Your German lesson with Tina starts in {minutes} minutes",
+    notificationBookingConfirmed: "Booking Confirmed",
+    notificationBookingCancelled: "Booking Cancelled",
+    notificationNoUnread: "No new notifications",
+    notificationMarkAllRead: "Mark all as read",
+    notificationEnableReminders: "Enable class reminders",
+    notificationRemindersDesc: "Get notified 30 minutes before your class starts",
+    notificationEnabled: "Reminders enabled",
+    notificationDisabled: "Reminders disabled",
+    notificationAllowBrowser: "Allow browser notifications",
+    notificationAllowBrowserDesc: "To receive class reminders, please allow browser notifications",
+    notificationWhatsApp: "Message on WhatsApp",
+    notificationJoinClass: "Join Class",
+    notificationViewBooking: "View Booking",
+    notificationMinutesAgo: "{minutes}m ago",
+    notificationHoursAgo: "{hours}h ago",
+    notificationJustNow: "Just now",
   },
   de: {
     // Header
@@ -464,6 +485,27 @@ const translations = {
     // Pricing
     pricingTitle: "Einfache, transparente Preise",
     pricingSubtitle: "Beginnen Sie mit einer kostenlosen Probestunde und wählen Sie dann das Paket, das zu Ihren Lernzielen passt",
+
+    // Notifications
+    notificationsTitle: "Benachrichtigungen",
+    notificationReminder: "Unterrichtserinnerung",
+    notificationReminderMessage: "Ihre Deutschstunde mit Tina beginnt in {minutes} Minuten",
+    notificationBookingConfirmed: "Buchung bestätigt",
+    notificationBookingCancelled: "Buchung storniert",
+    notificationNoUnread: "Keine neuen Benachrichtigungen",
+    notificationMarkAllRead: "Alle als gelesen markieren",
+    notificationEnableReminders: "Unterrichtserinnerungen aktivieren",
+    notificationRemindersDesc: "Werden Sie 30 Minuten vor Unterrichtsbeginn benachrichtigt",
+    notificationEnabled: "Erinnerungen aktiviert",
+    notificationDisabled: "Erinnerungen deaktiviert",
+    notificationAllowBrowser: "Browser-Benachrichtigungen erlauben",
+    notificationAllowBrowserDesc: "Um Unterrichtserinnerungen zu erhalten, erlauben Sie bitte Browser-Benachrichtigungen",
+    notificationWhatsApp: "Auf WhatsApp schreiben",
+    notificationJoinClass: "Am Unterricht teilnehmen",
+    notificationViewBooking: "Buchung ansehen",
+    notificationMinutesAgo: "Vor {minutes} Min.",
+    notificationHoursAgo: "Vor {hours} Std.",
+    notificationJustNow: "Gerade eben",
   },
 } as const;
 

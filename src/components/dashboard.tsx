@@ -39,6 +39,7 @@ import {
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
 import { BookingModal } from "./booking-modal";
+import { NotificationBell } from "./notification-bell";
 
 interface Booking {
   id: string;
@@ -453,6 +454,9 @@ export function Dashboard() {
 
             {/* Right: User info + actions */}
             <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <NotificationBell />
+
               {/* Language switcher */}
               <Button
                 variant="ghost"
