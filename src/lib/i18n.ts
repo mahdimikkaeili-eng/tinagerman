@@ -43,7 +43,7 @@ const translations = {
     courseB2ExamTitle: "B2 Exam Preparation",
     courseB2ExamDesc: "Prepare for your B2 exam with advanced grammar, academic vocabulary, and professional communication skills.",
     courseDuration: "50 min per lesson",
-    coursePrice: "Price discussed in first session",
+    coursePrice: "From $10 per lesson",
     courseBookNow: "Book Now",
 
     // How It Works
@@ -270,7 +270,7 @@ const translations = {
     courseB2ExamTitle: "B2 Prüfungsvorbereitung",
     courseB2ExamDesc: "Bereiten Sie sich auf Ihre B2-Prüfung mit fortgeschrittener Grammatik, akademischem Wortschatz und professionellen Kommunikationsfähigkeiten vor.",
     courseDuration: "50 Min. pro Unterrichtsstunde",
-    coursePrice: "Preis wird im ersten Gespräch besprochen",
+    coursePrice: "Ab 10$ pro Unterrichtsstunde",
     courseBookNow: "Jetzt buchen",
 
     // How It Works

@@ -119,8 +119,18 @@ const questions: QuizQuestion[] = [
   },
 ];
 
-function calculateLevel(answers: (number | null)[]): "A1" | "A2" | "B1" | "B2" {
-  let correct = 0;
+interface PlacementResult {
+  level: "A1" | "A2" | "B1" | "B2";
+  totalCorrect: number;
+  totalWrong: number;
+  a1Correct: number;
+  a2Correct: number;
+  b1Correct: number;
+  b2Correct: number;
+}
+
+function calculateLevel(answers: (number | null)[]): PlacementResult {
+  let totalCorrect = 0;
   let a1Correct = 0;
   let a2Correct = 0;
   let b1Correct = 0;
@@ -128,7 +138,7 @@ function calculateLevel(answers: (number | null)[]): "A1" | "A2" | "B1" | "B2" {
 
   questions.forEach((q, i) => {
     if (answers[i] === q.correctIndex) {
-      correct++;
+      totalCorrect++;
       if (q.level === "A1") a1Correct++;
       if (q.level === "A2") a2Correct++;
       if (q.level === "B1") b1Correct++;
@@ -136,11 +146,14 @@ function calculateLevel(answers: (number | null)[]): "A1" | "A2" | "B1" | "B2" {
     }
   });
 
-  // Scoring logic: progressive difficulty
-  if (correct >= 8 && b1Correct >= 1 && b2Correct >= 1) return "B2";
-  if (correct >= 6 && b1Correct >= 1) return "B1";
-  if (correct >= 4 && a2Correct >= 1) return "A2";
-  return "A1";
+  const totalWrong = questions.length - totalCorrect;
+  let level: "A1" | "A2" | "B1" | "B2";
+  if (totalCorrect >= 8 && b1Correct >= 1 && b2Correct >= 1) level = "B2";
+  else if (totalCorrect >= 6 && b1Correct >= 1) level = "B1";
+  else if (totalCorrect >= 4 && a2Correct >= 1) level = "A2";
+  else level = "A1";
+
+  return { level, totalCorrect, totalWrong, a1Correct, a2Correct, b1Correct, b2Correct };
 }
 
 export function PlacementTestSection() {
@@ -149,6 +162,7 @@ export function PlacementTestSection() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
   const [resultLevel, setResultLevel] = useState<"A1" | "A2" | "B1" | "B2" | null>(null);
+  const [resultData, setResultData] = useState<PlacementResult | null>(null);
 
   const progress = currentStep === "quiz" ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
@@ -157,6 +171,7 @@ export function PlacementTestSection() {
     setCurrentQuestion(0);
     setAnswers(new Array(questions.length).fill(null));
     setResultLevel(null);
+    setResultData(null);
   }, []);
 
   const handleAnswer = useCallback(
@@ -173,8 +188,9 @@ export function PlacementTestSection() {
       setCurrentQuestion((prev) => prev + 1);
     } else {
       // Submit
-      const level = calculateLevel(answers);
-      setResultLevel(level);
+      const result = calculateLevel(answers);
+      setResultLevel(result.level);
+      setResultData(result);
       setCurrentStep("result");
     }
   }, [currentQuestion, answers]);
@@ -190,6 +206,7 @@ export function PlacementTestSection() {
     setCurrentQuestion(0);
     setAnswers(new Array(questions.length).fill(null));
     setResultLevel(null);
+    setResultData(null);
   }, []);
 
   const levelResultKey = resultLevel
@@ -405,7 +422,7 @@ export function PlacementTestSection() {
           )}
 
           {/* RESULT STATE */}
-          {currentStep === "result" && resultLevel && (
+          {currentStep === "result" && resultLevel && resultData && (
             <motion.div
               key="result"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -414,12 +431,12 @@ export function PlacementTestSection() {
               transition={{ duration: 0.5 }}
             >
               <Card className={`border-2 ${resultColors[resultLevel].border} shadow-xl overflow-hidden`}>
-                <div className={`${resultColors[resultLevel].bg} px-6 py-10 text-center`}>
+                <div className={`${resultColors[resultLevel].bg} px-6 py-8 text-center`}>
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.2 }}
-                    className="text-6xl mb-4"
+                    className="text-5xl mb-3"
                   >
                     {resultEmoji[resultLevel]}
                   </motion.div>
@@ -427,7 +444,7 @@ export function PlacementTestSection() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-sm font-medium text-slate-500 mb-2"
+                    className="text-sm font-medium text-slate-500 mb-1"
                   >
                     {t("placementResultLevel", language)}
                   </motion.p>
@@ -441,12 +458,99 @@ export function PlacementTestSection() {
                   </motion.h3>
                 </div>
 
-                <CardContent className="p-6 text-center">
+                <CardContent className="p-6">
+                  {/* Score Summary */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                    className="grid grid-cols-3 gap-3 mb-6"
+                  >
+                    <div className="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                      <p className="text-2xl font-bold text-emerald-600">{resultData.totalCorrect}</p>
+                      <p className="text-xs text-emerald-700 font-medium">{language === "en" ? "Correct" : "Richtig"}</p>
+                    </div>
+                    <div className="text-center p-3 rounded-xl bg-red-50 border border-red-100">
+                      <p className="text-2xl font-bold text-red-500">{resultData.totalWrong}</p>
+                      <p className="text-xs text-red-600 font-medium">{language === "en" ? "Wrong" : "Falsch"}</p>
+                    </div>
+                    <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <p className="text-2xl font-bold text-slate-700">{questions.length}</p>
+                      <p className="text-xs text-slate-500 font-medium">{language === "en" ? "Total" : "Gesamt"}</p>
+                    </div>
+                  </motion.div>
+
+                  {/* Per-Level Breakdown */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="mb-6"
+                  >
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                      {language === "en" ? "📊 Breakdown by Level" : "📊 Aufschlüsselung nach Niveau"}
+                    </h4>
+                    <div className="space-y-2">
+                      {(["A1", "A2", "B1", "B2"] as const).map((lvl) => {
+                        const lvlQuestions = questions.filter(q => q.level === lvl).length;
+                        const lvlCorrect = resultData[`${lvl.toLowerCase()}Correct` as keyof PlacementResult] as number;
+                        const pct = lvlQuestions > 0 ? Math.round((lvlCorrect / lvlQuestions) * 100) : 0;
+                        return (
+                          <div key={lvl} className="flex items-center gap-3">
+                            <Badge variant="outline" className={`${levelColors[lvl].bg} ${levelColors[lvl].text} ${levelColors[lvl].border} font-bold w-10 justify-center`}>
+                              {lvl}
+                            </Badge>
+                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ delay: 0.6 + (["A1", "A2", "B1", "B2"].indexOf(lvl)) * 0.1, duration: 0.5 }}
+                                className={`h-full rounded-full ${
+                                  lvl === "A1" ? "bg-emerald-500" : lvl === "A2" ? "bg-teal-500" : lvl === "B1" ? "bg-amber-500" : "bg-orange-500"
+                                }`}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-slate-500 w-14 text-right">
+                              {lvlCorrect}/{lvlQuestions} ({pct}%)
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+
+                  {/* Short Analysis */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 }}
+                    className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6"
+                  >
+                    <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                      💡 {language === "en" ? "Your Analysis" : "Ihre Analyse"}
+                    </h4>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      {resultLevel === "A1" && (language === "en"
+                        ? "You're at the beginning of your German journey! You answered most basic questions correctly, which shows great potential. A1 lessons will build your foundation with everyday vocabulary, simple grammar, and practical phrases."
+                        : "Sie stehen am Anfang Ihrer Deutschreise! Sie haben die meisten Basisfragen richtig beantwortet, was großes Potenzial zeigt. A1-Unterricht wird Ihr Fundament mit Alltagswortschatz, einfacher Grammatik und praktischen Sätzen aufbauen.")}
+                      {resultLevel === "A2" && (language === "en"
+                        ? "Great progress! You have a solid foundation in basic German. Your A1 knowledge is strong, and you're starting to grasp A2 concepts. Focus on expanding vocabulary, past tense, and everyday conversations to move to the next level."
+                        : "Toller Fortschritt! Sie haben ein solides Fundament im Grunddeutsch. Ihr A1-Wissen ist stark, und Sie beginnen, A2-Konzepte zu verstehen. Konzentrieren Sie sich auf Wortschatzerweiterung, Vergangenheitsformen und Alltagskonversation.")}
+                      {resultLevel === "B1" && (language === "en"
+                        ? "Impressive! You communicate well in German and understand intermediate grammar. To reach B2, focus on complex sentence structures, professional vocabulary, and expressing nuanced opinions."
+                        : "Beeindruckend! Sie kommunizieren gut auf Deutsch und verstehen mittelschwere Grammatik. Um B2 zu erreichen, konzentrieren Sie sich auf komplexe Satzstrukturen, professionellen Wortschatz und nuancierte Meinungsäußerung.")}
+                      {resultLevel === "B2" && (language === "en"
+                        ? "Excellent! Your German is quite advanced. You handle complex grammar and vocabulary well. To perfect your skills, focus on idiomatic expressions, academic language, and cultural nuances."
+                        : "Ausgezeichnet! Ihr Deutsch ist recht fortgeschritten. Sie beherrschen komplexe Grammatik und Wortschatz gut. Um Ihre Fähigkeiten zu perfektionieren, konzentrieren Sie sich auf idiomatische Ausdrücke, akademische Sprache und kulturelle Nuancen.")}
+                    </p>
+                  </motion.div>
+
+                  {/* Description */}
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="text-slate-600 leading-relaxed mb-8 max-w-md mx-auto"
+                    transition={{ delay: 0.6 }}
+                    className="text-slate-600 leading-relaxed mb-6 text-center max-w-md mx-auto"
                   >
                     {t(levelDescKey, language)}
                   </motion.p>
@@ -454,7 +558,7 @@ export function PlacementTestSection() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
+                    transition={{ delay: 0.65 }}
                     className="flex flex-col sm:flex-row gap-3 justify-center"
                   >
                     <Button

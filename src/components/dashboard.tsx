@@ -188,7 +188,7 @@ export function Dashboard() {
     fetch(`/api/homework?studentId=${user.id}`)
       .then((res) => res.json())
       .then((data) => {
-        setHomework(data.homework || data || []);
+        setHomework(data.homeworks || data.homework || []);
         setHomeworkLoading(false);
       })
       .catch(() => {
