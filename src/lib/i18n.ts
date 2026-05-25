@@ -266,6 +266,20 @@ const translations = {
     telegramConnect: "Connect Telegram",
     telegramConnectDesc: "Get class reminders on Telegram",
     telegramBotStart: "Start our Telegram bot to receive class reminders",
+
+    // Teacher Homework
+    teacherHomework: "Homework",
+    assignHomework: "Assign Homework",
+    noHomeworkAssigned: "No homework assigned yet",
+    submitHomework: "Submit",
+    addFeedback: "Add Feedback",
+    markAsReviewed: "Mark as Reviewed",
+    homeworkAssignedSuccess: "Homework assigned successfully",
+    selectStudentForHomework: "Select student...",
+    homeworkTitle: "Title",
+    homeworkDescription: "Description",
+    dueDateOptional: "Due Date (optional)",
+    feedbackPlaceholder: "Write your feedback...",
   },
   de: {
     // Header
@@ -532,6 +546,20 @@ const translations = {
     telegramConnectDesc: "Erhalten Sie Unterrichtserinnerungen auf Telegram",
     telegramBotStart: "Starten Sie unseren Telegram-Bot, um Unterrichtserinnerungen zu erhalten",
     lessonRedirectMessage: "Sie werden zu WhatsApp weitergeleitet, um Ihre Deutschstunde zu buchen.",
+
+    // Teacher Homework
+    teacherHomework: "Hausaufgaben",
+    assignHomework: "Hausaufgabe geben",
+    noHomeworkAssigned: "Noch keine Hausaufgaben gegeben",
+    submitHomework: "Abgeben",
+    addFeedback: "Feedback geben",
+    markAsReviewed: "Als überprüft markieren",
+    homeworkAssignedSuccess: "Hausaufgabe erfolgreich gegeben",
+    selectStudentForHomework: "Schüler auswählen...",
+    homeworkTitle: "Titel",
+    homeworkDescription: "Beschreibung",
+    dueDateOptional: "Fälligkeitsdatum (optional)",
+    feedbackPlaceholder: "Feedback schreiben...",
   },
 } as const;
 

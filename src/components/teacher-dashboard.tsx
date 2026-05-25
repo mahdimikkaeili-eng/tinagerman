@@ -20,6 +20,8 @@ import {
   CalendarPlus,
   Star,
   Trash2,
+  BookOpen,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -185,6 +189,27 @@ export function TeacherDashboard() {
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewActionId, setReviewActionId] = useState<string | null>(null);
 
+  // Homework
+  interface TeacherHomework {
+    id: string;
+    title: string;
+    description: string;
+    dueDate: string | null;
+    status: string;
+    feedback: string | null;
+    createdAt: string;
+    student: { id: string; name: string; avatar: string | null };
+    teacher: { id: string; name: string; avatar: string | null };
+  }
+  const [teacherHomework, setTeacherHomework] = useState<TeacherHomework[]>([]);
+  const [homeworkLoading, setHomeworkLoading] = useState(true);
+  const [showNewHomeworkForm, setShowNewHomeworkForm] = useState(false);
+  const [newHomework, setNewHomework] = useState({ studentId: "", title: "", description: "", dueDate: "" });
+  const [homeworkFilter, setHomeworkFilter] = useState("all");
+  const [feedbackInput, setFeedbackInput] = useState<Record<string, string>>({});
+  const [submittingHomeworkId, setSubmittingHomeworkId] = useState<string | null>(null);
+  const [assigningHomework, setAssigningHomework] = useState(false);
+
   // Load reviews
   useEffect(() => {
     if (activeTab !== "reviews") return;
@@ -200,6 +225,39 @@ export function TeacherDashboard() {
         setReviewsLoading(false);
       });
   }, [activeTab]);
+
+  // Load homework
+  useEffect(() => {
+    if (activeTab !== "homework" || !user) return;
+    setHomeworkLoading(true);
+    fetch(`/api/homework?teacherId=${user.id}`, { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch homework");
+        return res.json();
+      })
+      .then((data) => {
+        setTeacherHomework(data.homeworks || []);
+        setHomeworkLoading(false);
+      })
+      .catch(() => {
+        setTeacherHomework([]);
+        setHomeworkLoading(false);
+      });
+  }, [activeTab, user]);
+
+  // Also load students when homework tab is active (for the assign form)
+  useEffect(() => {
+    if (activeTab !== "homework") return;
+    if (students.length > 0) return;
+    fetch("/api/teacher/students")
+      .then((res) => res.json())
+      .then((data) => {
+        setStudents(data.students || []);
+      })
+      .catch(() => {
+        // silently fail
+      });
+  }, [activeTab, students.length]);
 
   const handleApproveReview = async (id: string, isApproved: boolean) => {
     setReviewActionId(id);
@@ -399,6 +457,86 @@ export function TeacherDashboard() {
     logout();
   };
 
+  // Homework status colors
+  const homeworkStatusColors: Record<string, string> = {
+    assigned: "bg-blue-100 text-blue-700 border-blue-200",
+    submitted: "bg-amber-100 text-amber-700 border-amber-200",
+    reviewed: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  };
+
+  // Filter homework
+  const filteredHomework =
+    homeworkFilter === "all"
+      ? teacherHomework
+      : teacherHomework.filter((hw) => hw.status === homeworkFilter);
+
+  // Handle assign homework
+  const handleAssignHomework = async () => {
+    if (!newHomework.studentId || !newHomework.title || !newHomework.description) return;
+    setAssigningHomework(true);
+    try {
+      const res = await fetch("/api/homework", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          studentId: newHomework.studentId,
+          title: newHomework.title,
+          description: newHomework.description,
+          dueDate: newHomework.dueDate || null,
+        }),
+      });
+      if (res.ok) {
+        setNewHomework({ studentId: "", title: "", description: "", dueDate: "" });
+        setShowNewHomeworkForm(false);
+        // Reload homework
+        if (user) {
+          const homeworkRes = await fetch(`/api/homework?teacherId=${user.id}`, { credentials: "include" });
+          if (homeworkRes.ok) {
+            const data = await homeworkRes.json();
+            setTeacherHomework(data.homeworks || []);
+          }
+        }
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAssigningHomework(false);
+    }
+  };
+
+  // Handle homework feedback / mark as reviewed
+  const handleHomeworkFeedback = async (homeworkId: string, feedback: string, markReviewed: boolean) => {
+    setSubmittingHomeworkId(homeworkId);
+    try {
+      const body: Record<string, string> = {};
+      if (feedback) body.feedback = feedback;
+      if (markReviewed) body.status = "reviewed";
+      const res = await fetch(`/api/homework/${homeworkId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (res.ok && user) {
+        const homeworkRes = await fetch(`/api/homework?teacherId=${user.id}`, { credentials: "include" });
+        if (homeworkRes.ok) {
+          const data = await homeworkRes.json();
+          setTeacherHomework(data.homeworks || []);
+        }
+        setFeedbackInput((prev) => {
+          const next = { ...prev };
+          delete next[homeworkId];
+          return next;
+        });
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setSubmittingHomeworkId(null);
+    }
+  };
+
   // Format helpers
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -459,6 +597,7 @@ export function TeacherDashboard() {
     { id: "overview", label: t("teacherOverview", language), icon: BarChart3 },
     { id: "bookings", label: t("teacherBookingsTab", language), icon: Calendar },
     { id: "students", label: t("teacherStudentsTab", language), icon: Users },
+    { id: "homework", label: t("teacherHomework", language), icon: BookOpen },
     { id: "chat", label: t("chatWithStudents", language), icon: MessageCircle },
     { id: "reviews", label: language === "en" ? "Reviews" : "Bewertungen", icon: Star },
     { id: "schedule", label: t("teacherScheduleTab", language), icon: Clock },
@@ -545,7 +684,7 @@ export function TeacherDashboard() {
             {/* Mobile tabs */}
             <div className="lg:hidden mb-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="w-full grid grid-cols-6">
+                <TabsList className="w-full grid grid-cols-7">
                   {sidebarItems.map((item) => (
                     <TabsTrigger key={item.id} value={item.id} className="text-xs px-1">
                       <item.icon className="size-4" />
@@ -1048,6 +1187,201 @@ export function TeacherDashboard() {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {/* HOMEWORK TAB */}
+            {activeTab === "homework" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h2 className="text-xl font-bold text-slate-900">{t("teacherHomework", language)}</h2>
+                  <div className="flex items-center gap-2">
+                    <Select value={homeworkFilter} onValueChange={setHomeworkFilter}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder={t("allStatuses", language)} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t("allStatuses", language)}</SelectItem>
+                        <SelectItem value="assigned">{t("assigned", language)}</SelectItem>
+                        <SelectItem value="submitted">{t("submitted", language)}</SelectItem>
+                        <SelectItem value="reviewed">{t("reviewed", language)}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => setShowNewHomeworkForm(!showNewHomeworkForm)}
+                    >
+                      <Plus className="size-4 mr-1" />
+                      {t("assignHomework", language)}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* New homework form */}
+                {showNewHomeworkForm && (
+                  <Card className="border-emerald-200 bg-emerald-50/30">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>{t("studentName", language)}</Label>
+                          <Select value={newHomework.studentId} onValueChange={(v) => setNewHomework((prev) => ({ ...prev, studentId: v }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("selectStudentForHomework", language)} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {students.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("homeworkTitle", language)}</Label>
+                          <Input
+                            value={newHomework.title}
+                            onChange={(e) => setNewHomework((prev) => ({ ...prev, title: e.target.value }))}
+                            placeholder={t("homeworkTitle", language)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("homeworkDescription", language)}</Label>
+                          <Textarea
+                            value={newHomework.description}
+                            onChange={(e) => setNewHomework((prev) => ({ ...prev, description: e.target.value }))}
+                            placeholder={t("homeworkDescription", language)}
+                            rows={3}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("dueDateOptional", language)}</Label>
+                          <Input
+                            type="date"
+                            value={newHomework.dueDate}
+                            onChange={(e) => setNewHomework((prev) => ({ ...prev, dueDate: e.target.value }))}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={handleAssignHomework}
+                            disabled={assigningHomework || !newHomework.studentId || !newHomework.title || !newHomework.description}
+                          >
+                            {assigningHomework ? <Loader2 className="size-4 animate-spin mr-1" /> : <CheckCircle2 className="size-4 mr-1" />}
+                            {t("assignHomework", language)}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setShowNewHomeworkForm(false); setNewHomework({ studentId: "", title: "", description: "", dueDate: "" }); }}
+                          >
+                            {t("cancel", language)}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Homework list */}
+                {homeworkLoading ? (
+                  <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
+                ) : filteredHomework.length === 0 ? (
+                  <Card><CardContent className="py-12 text-center"><p className="text-slate-400">{t("noHomeworkAssigned", language)}</p></CardContent></Card>
+                ) : (
+                  <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                    {filteredHomework.map((hw) => (
+                      <Card key={hw.id} className="overflow-hidden">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                            <div className="flex items-center gap-3 shrink-0">
+                              <Avatar className="size-10 bg-emerald-100">
+                                <AvatarFallback className="bg-emerald-100 text-emerald-700 text-sm font-semibold">
+                                  {hw.student.name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900">{hw.student.name}</p>
+                                <p className="text-xs text-slate-500">{formatDate(hw.createdAt)}</p>
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-sm font-medium text-slate-900">{hw.title}</h4>
+                                <Badge variant="outline" className={homeworkStatusColors[hw.status] || "bg-slate-100 text-slate-600"}>
+                                  {t(hw.status as "assigned" | "submitted" | "reviewed", language)}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-slate-500 mt-1 line-clamp-2">{hw.description}</p>
+                              {hw.dueDate && (
+                                <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+                                  <Clock className="size-3" />
+                                  {t("dueDate", language)}: {formatDate(hw.dueDate)}
+                                </div>
+                              )}
+                              {hw.feedback && (
+                                <div className="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium mb-1">
+                                    <CheckCircle2 className="size-3" />
+                                    {t("feedback", language)}
+                                  </div>
+                                  <p className="text-sm text-emerald-800">{hw.feedback}</p>
+                                </div>
+                              )}
+                              {hw.status === "submitted" && !hw.feedback && (
+                                <div className="mt-3 space-y-2">
+                                  {feedbackInput[hw.id] !== undefined ? (
+                                    <>
+                                      <Textarea
+                                        value={feedbackInput[hw.id]}
+                                        onChange={(e) => setFeedbackInput((prev) => ({ ...prev, [hw.id]: e.target.value }))}
+                                        placeholder={t("feedbackPlaceholder", language)}
+                                        rows={2}
+                                      />
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          size="sm"
+                                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                          onClick={() => handleHomeworkFeedback(hw.id, feedbackInput[hw.id], true)}
+                                          disabled={submittingHomeworkId === hw.id}
+                                        >
+                                          {submittingHomeworkId === hw.id ? <Loader2 className="size-3 animate-spin mr-1" /> : <CheckCircle2 className="size-3 mr-1" />}
+                                          {t("markAsReviewed", language)}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setFeedbackInput((prev) => {
+                                            const next = { ...prev };
+                                            delete next[hw.id];
+                                            return next;
+                                          })}
+                                          disabled={submittingHomeworkId === hw.id}
+                                        >
+                                          {t("cancel", language)}
+                                        </Button>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                      onClick={() => setFeedbackInput((prev) => ({ ...prev, [hw.id]: "" }))}
+                                    >
+                                      {t("addFeedback", language)}
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

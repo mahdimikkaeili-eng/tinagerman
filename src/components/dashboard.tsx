@@ -139,6 +139,7 @@ export function Dashboard() {
   // Homework state
   const [homework, setHomework] = useState<Homework[]>([]);
   const [homeworkLoading, setHomeworkLoading] = useState(true);
+  const [submittingHomeworkId, setSubmittingHomeworkId] = useState<string | null>(null);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -1162,6 +1163,46 @@ export function Dashboard() {
                                   <p className="text-sm text-emerald-800">
                                     {hw.feedback}
                                   </p>
+                                </div>
+                              )}
+
+                              {/* Submit button for assigned homework */}
+                              {hw.status === "assigned" && (
+                                <div className="mt-3">
+                                  <Button
+                                    size="sm"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    disabled={submittingHomeworkId === hw.id}
+                                    onClick={async () => {
+                                      setSubmittingHomeworkId(hw.id);
+                                      try {
+                                        const res = await fetch(`/api/homework/${hw.id}`, {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          credentials: "include",
+                                          body: JSON.stringify({ status: "submitted" }),
+                                        });
+                                        if (res.ok && user) {
+                                          const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
+                                          if (homeworkRes.ok) {
+                                            const data = await homeworkRes.json();
+                                            setHomework(data.homeworks || data.homework || []);
+                                          }
+                                        }
+                                      } catch {
+                                        // silently fail
+                                      } finally {
+                                        setSubmittingHomeworkId(null);
+                                      }
+                                    }}
+                                  >
+                                    {submittingHomeworkId === hw.id ? (
+                                      <Loader2 className="size-4 animate-spin mr-1" />
+                                    ) : (
+                                      <CheckCircle2 className="size-4 mr-1" />
+                                    )}
+                                    {t("submitHomework", language)}
+                                  </Button>
                                 </div>
                               )}
                             </div>

@@ -16,10 +16,11 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const studentId = searchParams.get('studentId')
+    const teacherId = searchParams.get('teacherId')
 
-    if (!studentId) {
+    if (!studentId && !teacherId) {
       return NextResponse.json(
-        { error: 'studentId query parameter is required' },
+        { error: 'studentId or teacherId query parameter is required' },
         { status: 400 }
       )
     }
@@ -36,17 +37,33 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Only the student themselves or a teacher can view homework
-    if (studentId !== userId && user.role !== 'teacher' && user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Not authorized to view this homework' },
-        { status: 403 }
-      )
+    // Authorization checks
+    if (teacherId) {
+      // Only the teacher themselves (or admin) can view homework by teacherId
+      if (teacherId !== userId && user.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Not authorized to view this homework' },
+          { status: 403 }
+        )
+      }
+    } else if (studentId) {
+      // Only the student themselves or a teacher can view homework by studentId
+      if (studentId !== userId && user.role !== 'teacher' && user.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Not authorized to view this homework' },
+          { status: 403 }
+        )
+      }
     }
 
     const status = searchParams.get('status')
 
-    const where: Record<string, unknown> = { studentId }
+    const where: Record<string, unknown> = {}
+    if (teacherId) {
+      where.teacherId = teacherId
+    } else if (studentId) {
+      where.studentId = studentId
+    }
     if (status) {
       where.status = status
     }
