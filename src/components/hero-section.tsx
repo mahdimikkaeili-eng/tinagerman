@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
+import { toast } from "sonner";
 
 export function HeroSection() {
   const { language, isAuthenticated, setShowAuthModal, setAuthMode, setPendingAction } = useAppStore();
@@ -24,11 +25,17 @@ export function HeroSection() {
       setShowAuthModal(true);
       return;
     }
-    // If authenticated, redirect to WhatsApp
-    const message = language === "en"
-      ? "Hi Tina! I'd like to book a free trial lesson."
-      : "Hallo Tina! Ich möchte eine kostenlose Probestunde buchen.";
-    window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+    // If authenticated, show toast then redirect to WhatsApp
+    toast.success(t("trialRedirectAuthTitle", language), {
+      description: t("trialRedirectAuthMessage", language),
+      duration: 4000,
+    });
+    setTimeout(() => {
+      const message = language === "en"
+        ? "Hi Tina! I'd like to book a free trial lesson."
+        : "Hallo Tina! Ich möchte eine kostenlose Probestunde buchen.";
+      window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+    }, 1500);
   };
 
   return (

@@ -253,6 +253,19 @@ const translations = {
     notificationMinutesAgo: "{minutes}m ago",
     notificationHoursAgo: "{hours}h ago",
     notificationJustNow: "Just now",
+
+    // WhatsApp redirect messages
+    trialRedirectTitle: "Registration Successful!",
+    trialRedirectMessage: "You'll be redirected to WhatsApp to book your free trial lesson.",
+    trialRedirectAuthTitle: "Opening WhatsApp",
+    trialRedirectAuthMessage: "You're being redirected to WhatsApp to book your free trial lesson.",
+    lessonRedirectTitle: "Registration Successful!",
+    lessonRedirectMessage: "You'll be redirected to WhatsApp to book your German lesson.",
+
+    // Telegram Integration
+    telegramConnect: "Connect Telegram",
+    telegramConnectDesc: "Get class reminders on Telegram",
+    telegramBotStart: "Start our Telegram bot to receive class reminders",
   },
   de: {
     // Header
@@ -506,6 +519,19 @@ const translations = {
     notificationMinutesAgo: "Vor {minutes} Min.",
     notificationHoursAgo: "Vor {hours} Std.",
     notificationJustNow: "Gerade eben",
+
+    // WhatsApp-Weiterleitungsnachrichten
+    trialRedirectTitle: "Registrierung erfolgreich!",
+    trialRedirectMessage: "Sie werden zu WhatsApp weitergeleitet, um Ihre kostenlose Probestunde zu buchen.",
+    trialRedirectAuthTitle: "WhatsApp wird geöffnet",
+    trialRedirectAuthMessage: "Sie werden zu WhatsApp weitergeleitet, um Ihre kostenlose Probestunde zu buchen.",
+    lessonRedirectTitle: "Registrierung erfolgreich!",
+
+    // Telegram Integration
+    telegramConnect: "Mit Telegram verbinden",
+    telegramConnectDesc: "Erhalten Sie Unterrichtserinnerungen auf Telegram",
+    telegramBotStart: "Starten Sie unseren Telegram-Bot, um Unterrichtserinnerungen zu erhalten",
+    lessonRedirectMessage: "Sie werden zu WhatsApp weitergeleitet, um Ihre Deutschstunde zu buchen.",
   },
 } as const;
 

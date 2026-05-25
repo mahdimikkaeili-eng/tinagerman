@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     if (force) {
       try {
         await db.$executeRawUnsafe('DELETE FROM SiteConfig')
+        await db.$executeRawUnsafe('DELETE FROM Testimonial')
         await db.$executeRawUnsafe('DELETE FROM Homework')
         await db.$executeRawUnsafe('DELETE FROM Message')
         await db.$executeRawUnsafe('DELETE FROM Booking')
@@ -113,11 +114,109 @@ export async function POST(request: Request) {
       }
     }
 
+    // Create sample student users for testimonials
+    const studentData = [
+      {
+        email: 'sarah.johnson@email.com',
+        name: 'Sarah Johnson',
+        password: hashPassword('Student2024!'),
+        role: 'student',
+        nativeLanguage: 'en',
+        germanLevel: 'B1',
+        bio: 'Expat living in Berlin, learning German to better connect with my community.',
+        timezone: 'Europe/Berlin',
+      },
+      {
+        email: 'marcos.rivera@email.com',
+        name: 'Marcos Rivera',
+        password: hashPassword('Student2024!'),
+        role: 'student',
+        nativeLanguage: 'es',
+        germanLevel: 'A2',
+        bio: 'Software engineer from Spain, preparing for a job relocation to Munich.',
+        timezone: 'Europe/Madrid',
+      },
+      {
+        email: 'emily.chen@email.com',
+        name: 'Emily Chen',
+        password: hashPassword('Student2024!'),
+        role: 'student',
+        nativeLanguage: 'en',
+        germanLevel: 'A1',
+        bio: 'University student planning to study abroad in Vienna.',
+        timezone: 'America/New_York',
+      },
+      {
+        email: 'yuki.tanaka@email.com',
+        name: 'Yuki Tanaka',
+        password: hashPassword('Student2024!'),
+        role: 'student',
+        nativeLanguage: 'ja',
+        germanLevel: 'B2',
+        bio: 'Translator and language enthusiast, improving German for professional certification.',
+        timezone: 'Asia/Tokyo',
+      },
+    ]
+
+    const students: { id: string; name: string; email: string }[] = []
+    for (const data of studentData) {
+      const existing = await db.user.findFirst({ where: { email: data.email } })
+      if (!existing) {
+        const student = await db.user.create({ data })
+        students.push({ id: student.id, name: student.name, email: student.email })
+      } else {
+        students.push({ id: existing.id, name: existing.name, email: existing.email })
+      }
+    }
+
+    // Create sample approved testimonials
+    const testimonialData = [
+      {
+        userId: students[0].id,
+        rating: 5,
+        comment: "Tina is an incredible German teacher! After just three months of lessons, I went from barely being able to introduce myself to having full conversations with my neighbors in Berlin. Her lessons are well-structured, fun, and she always adapts to my pace. I couldn't recommend her more highly!",
+        isApproved: true,
+      },
+      {
+        userId: students[1].id,
+        rating: 5,
+        comment: "I needed to reach A2 level quickly for my job relocation to Munich, and Tina made it happen. She combines grammar drills with real-life scenarios, so you're not just memorizing — you're actually learning to communicate. The flexible scheduling was a huge plus for me as well.",
+        isApproved: true,
+      },
+      {
+        userId: students[2].id,
+        rating: 4,
+        comment: "As a complete beginner, I was really nervous about learning German. Tina made the process so approachable and enjoyable. She uses great materials and always encourages you to speak from day one. I'm already planning my next course with her!",
+        isApproved: true,
+      },
+      {
+        userId: students[3].id,
+        rating: 5,
+        comment: "I've tried several German tutors before finding Tina, and she is by far the best. Her deep understanding of the language and her ability to explain subtle nuances have been invaluable for my B2 preparation. Every lesson feels tailored to my specific goals. Vielen Dank, Tina!",
+        isApproved: true,
+      },
+    ]
+
+    const testimonials: { id: string; rating: number }[] = []
+    for (const data of testimonialData) {
+      const existing = await db.testimonial.findFirst({
+        where: { userId: data.userId, comment: data.comment },
+      })
+      if (!existing) {
+        const testimonial = await db.testimonial.create({ data })
+        testimonials.push({ id: testimonial.id, rating: testimonial.rating })
+      } else {
+        testimonials.push({ id: existing.id, rating: existing.rating })
+      }
+    }
+
     return NextResponse.json({
       message: 'Database seeded successfully',
       data: {
         teacher: { id: tina.id, name: tina.name, email: tina.email },
         courses: courses.map((c) => ({ id: c.id, level: c.level, title: c.title })),
+        students: students.map((s) => ({ id: s.id, name: s.name })),
+        testimonials: testimonials.map((t) => ({ id: t.id, rating: t.rating })),
       },
     }, { status: 201 })
   } catch (error) {

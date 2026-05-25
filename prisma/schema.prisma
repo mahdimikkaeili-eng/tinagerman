@@ -14,6 +14,7 @@ model User {
   password     String
   role         String   @default("student") // "student" | "teacher" | "admin"
   phone        String?
+  telegramChatId String? // Telegram chat ID for notifications
   nativeLanguage String? // "en", "de", "fa", etc.
   germanLevel  String? // "A1", "A2", "B1", "B2"
   bio          String?

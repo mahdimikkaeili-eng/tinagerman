@@ -22,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
+import { toast } from "sonner";
 
 const nativeLanguages = [
   { value: "en", label: "English" },
@@ -167,15 +168,28 @@ export function AuthModal() {
     // Small timeout to let modal close animation finish
     setTimeout(() => {
       if (action === "whatsapp-trial") {
-        const message = language === "en"
-          ? "Hi Tina! I'd like to book a free trial lesson."
-          : "Hallo Tina! Ich möchte eine kostenlose Probestunde buchen.";
-        window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+        toast.success(t("trialRedirectTitle", language), {
+          description: t("trialRedirectMessage", language),
+          duration: 4000,
+        });
+        // Delay the redirect so the user can read the toast
+        setTimeout(() => {
+          const message = language === "en"
+            ? "Hi Tina! I'd like to book a free trial lesson."
+            : "Hallo Tina! Ich möchte eine kostenlose Probestunde buchen.";
+          window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+        }, 1500);
       } else if (action === "whatsapp-lesson") {
-        const message = language === "en"
-          ? "Hi Tina! I'd like to book a German lesson."
-          : "Hallo Tina! Ich möchte eine Deutschstunde buchen.";
-        window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+        toast.success(t("lessonRedirectTitle", language), {
+          description: t("lessonRedirectMessage", language),
+          duration: 4000,
+        });
+        setTimeout(() => {
+          const message = language === "en"
+            ? "Hi Tina! I'd like to book a German lesson."
+            : "Hallo Tina! Ich möchte eine Deutschstunde buchen.";
+          window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+        }, 1500);
       }
     }, 300);
   };

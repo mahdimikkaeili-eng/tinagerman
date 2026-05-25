@@ -73,3 +73,109 @@ Work Log:
 
 Stage Summary:
 - All notification UI elements are fully bilingual (EN/DE)
+
+---
+Task ID: 2
+Agent: main
+Task: Improve trial booking flow UX — show toast before WhatsApp redirect
+
+Work Log:
+- Added 6 new i18n translation keys for WhatsApp redirect messages (EN + DE) in src/lib/i18n.ts:
+  - trialRedirectTitle, trialRedirectMessage (after registration/login for trial)
+  - trialRedirectAuthTitle, trialRedirectAuthMessage (for already-authenticated users clicking trial)
+  - lessonRedirectTitle, lessonRedirectMessage (after registration/login for regular lesson)
+- Modified executePendingAction() in src/components/auth-modal.tsx:
+  - Added `import { toast } from "sonner"`
+  - Now shows a success toast with descriptive message before WhatsApp redirect
+  - Added 1500ms delay between toast and window.open so user can read the notification
+  - Toast duration set to 4000ms for readability
+  - Applied to both "whatsapp-trial" and "whatsapp-lesson" action paths
+- Modified handleBookTrial() in src/components/hero-section.tsx:
+  - Added `import { toast } from "sonner"`
+  - For authenticated users, now shows a success toast before redirecting to WhatsApp
+  - Added 1500ms delay between toast and window.open
+  - Uses trialRedirectAuthTitle/trialRedirectAuthMessage i18n keys
+
+Stage Summary:
+- Users now see a clear toast notification explaining the redirect before WhatsApp opens
+- Two distinct toast messages: one for post-registration (celebratory "Registration Successful!") and one for already-logged-in users ("Opening WhatsApp")
+- Both EN and DE translations provided for all new messages
+- Lint passes cleanly, no build errors
+
+---
+Task ID: 1
+Agent: main
+Task: Add sample testimonials to seed data so testimonials section shows real-looking data
+
+Work Log:
+- Read existing seed route at /src/app/api/seed/route.ts — only had teacher + courses, no students or testimonials
+- Added `DELETE FROM Testimonial` to the force cleanup section (before User deletion) to respect foreign key constraints
+- Created 4 sample student users: Sarah Johnson (en/B1), Marcos Rivera (es/A2), Emily Chen (en/A1), Yuki Tanaka (ja/B2)
+- Created 4 approved testimonials (isApproved: true) with ratings 4-5 and realistic comments about learning German with Tina
+- Added students and testimonials to the seed response JSON for confirmation
+- Ran lint — passes cleanly
+- Ran direct database seeding via tsx script — all 4 students created, 4 approved testimonials confirmed in database
+
+Stage Summary:
+- Seed route now creates 4 student users and 4 approved testimonials after courses
+- Testimonials have ratings of 4-5 stars with realistic English comments about learning German
+- All testimonials are immediately visible (isApproved: true)
+- Force cleanup properly deletes Testimonial records before User records
+- Database confirmed populated with 4 approved testimonials
+
+---
+Task ID: 3
+Agent: main
+Task: Create server-side cron endpoint for automatic class reminders + Telegram Bot API integration
+
+Work Log:
+- Added `telegramChatId String?` field to User model in prisma/schema.prisma
+- Ran `bun run db:push` to sync database with new schema
+- Created /src/lib/telegram.ts — Telegram Bot API helper with functions:
+  - sendTelegramMessage(chatId, text) — sends HTML-formatted messages via Bot API
+  - setTelegramWebhook(webhookUrl) — registers webhook URL with Telegram
+  - getTelegramBotInfo() — verifies bot token and retrieves username
+  - deleteTelegramWebhook() — removes webhook (for switching to polling mode)
+  - All functions use TELEGRAM_BOT_TOKEN env variable
+- Created /src/lib/notifications.ts — shared notification service with:
+  - createInAppNotification(userId, title, message, type, actionUrl?, bookingId?) — creates DB notification
+  - sendClassReminder(booking, user) — creates in-app notification + Telegram message + WhatsApp link
+  - generateWhatsAppReminderLink(user, booking) — generates wa.me link with pre-filled message
+  - findUpcomingBookings(withinMinutes) — finds all bookings within a time window across all users
+  - reminderExists(userId, bookingId) — deduplication check
+  - Timezone helper functions (getTimezoneOffset, formatDate, getMinutesUntilBooking, getViennaNow)
+- Created /src/app/api/cron/reminders/route.ts — server-side cron endpoint:
+  - Accepts GET requests (easy to call via curl/cron-job.org)
+  - Protected by CRON_SECRET query parameter
+  - Finds all bookings within 30 minutes from now (pending/confirmed)
+  - For each booking: creates in-app notification, sends Telegram message, generates WhatsApp link
+  - Deduplicates (skips bookings that already have reminders)
+  - Returns detailed summary with per-booking status
+- Created /src/app/api/telegram/webhook/route.ts — Telegram webhook handler:
+  - /start — welcome message with connection instructions
+  - /connect email@example.com — links Telegram chatId to website user account
+  - /help — shows available commands
+  - /status — shows connection status and upcoming lesson count
+  - Handles unknown messages gracefully
+  - Always returns 200 to Telegram (per their API requirements)
+- Created /src/app/api/telegram/setup/route.ts — webhook setup endpoint:
+  - POST — sets the Telegram webhook URL (protected by CRON_SECRET)
+  - GET — checks bot setup status (protected by CRON_SECRET)
+  - DELETE — removes the Telegram webhook (protected by CRON_SECRET)
+  - Validates bot token before setting webhook
+- Updated i18n translations in /src/lib/i18n.ts:
+  - Added 3 new keys for both EN and DE:
+    - telegramConnect: "Connect Telegram" / "Mit Telegram verbinden"
+    - telegramConnectDesc: "Get class reminders on Telegram" / "Erhalten Sie Unterrichtserinnerungen auf Telegram"
+    - telegramBotStart: "Start our Telegram bot to receive class reminders" / "Starten Sie unseren Telegram-Bot, um Unterrichtserinnerungen zu erhalten"
+- Ran lint — passes cleanly with no errors
+
+Stage Summary:
+- Complete server-side cron reminder system that works without the browser being open
+- Full Telegram Bot API integration with webhook handling
+- Users can connect their Telegram accounts via /connect command
+- Automatic reminders sent via both in-app notifications and Telegram
+- WhatsApp fallback links generated for each reminder
+- All timezone handling uses Europe/Vienna properly
+- Deduplication prevents duplicate reminders for the same booking
+- All new API endpoints protected by CRON_SECRET
