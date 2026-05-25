@@ -82,7 +82,19 @@ const cardVariants = {
 };
 
 export function CoursesSection() {
-  const { language } = useAppStore();
+  const { language, isAuthenticated, setShowAuthModal, setAuthMode } = useAppStore();
+
+  const handleBookNow = () => {
+    if (!isAuthenticated) {
+      setAuthMode("signup");
+      setShowAuthModal(true);
+      return;
+    }
+    const message = language === "en"
+      ? "Hi Tina! I'd like to book a German lesson."
+      : "Hallo Tina! Ich möchte eine Deutschstunde buchen.";
+    window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+  };
 
   return (
     <section id="courses" className="py-20 md:py-28 bg-slate-50/50">
@@ -153,7 +165,7 @@ export function CoursesSection() {
                   </p>
                   <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm mt-1"
-                    onClick={() => window.open("https://wa.me/4367763401913", "_blank")}
+                    onClick={handleBookNow}
                   >
                     {t("courseBookNow", language)}
                     <ArrowRight className="size-4 ml-1" />

@@ -6,11 +6,12 @@ import { Header } from "@/components/header";
 import { HeroSection } from "@/components/hero-section";
 import { TeacherSection } from "@/components/teacher-section";
 import { CoursesSection } from "@/components/courses-section";
+import { PricingSection } from "@/components/pricing-section";
+import { PlacementTestSection } from "@/components/placement-test-section";
+import { LearningResourcesSection } from "@/components/learning-resources-section";
 import { HowItWorksSection } from "@/components/how-it-works-section";
 import { TestimonialsSection } from "@/components/testimonials-section";
 import { ContactSection } from "@/components/contact-section";
-import { PlacementTestSection } from "@/components/placement-test-section";
-import { LearningResourcesSection } from "@/components/learning-resources-section";
 import { FaqSection } from "@/components/faq-section";
 import { Footer } from "@/components/footer";
 import { AuthModal } from "@/components/auth-modal";
@@ -56,6 +57,7 @@ export default function Home() {
         <HeroSection />
         <TeacherSection />
         <CoursesSection />
+        <PricingSection />
         <PlacementTestSection />
         <LearningResourcesSection />
         <HowItWorksSection />

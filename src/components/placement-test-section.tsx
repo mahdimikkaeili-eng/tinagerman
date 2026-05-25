@@ -157,7 +157,7 @@ function calculateLevel(answers: (number | null)[]): PlacementResult {
 }
 
 export function PlacementTestSection() {
-  const { language } = useAppStore();
+  const { language, isAuthenticated, setShowAuthModal, setAuthMode } = useAppStore();
   const [currentStep, setCurrentStep] = useState<"intro" | "quiz" | "result">("intro");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
@@ -497,7 +497,7 @@ export function PlacementTestSection() {
                         const pct = lvlQuestions > 0 ? Math.round((lvlCorrect / lvlQuestions) * 100) : 0;
                         return (
                           <div key={lvl} className="flex items-center gap-3">
-                            <Badge variant="outline" className={`${levelColors[lvl].bg} ${levelColors[lvl].text} ${levelColors[lvl].border} font-bold w-10 justify-center`}>
+                            <Badge variant="outline" className={`${resultColors[lvl].bg} ${resultColors[lvl].text} ${resultColors[lvl].border} font-bold w-10 justify-center`}>
                               {lvl}
                             </Badge>
                             <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
@@ -564,7 +564,17 @@ export function PlacementTestSection() {
                     <Button
                       size="lg"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm gap-1.5"
-                      onClick={() => window.open("https://wa.me/4367763401913", "_blank")}
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          setAuthMode("signup");
+                          setShowAuthModal(true);
+                          return;
+                        }
+                        const message = language === "en"
+                          ? "Hi Tina! I'd like to book a German lesson."
+                          : "Hallo Tina! Ich möchte eine Deutschstunde buchen.";
+                        window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
+                      }}
                     >
                       <MessageCircle className="size-4" />
                       {t("placementBookLesson", language)}

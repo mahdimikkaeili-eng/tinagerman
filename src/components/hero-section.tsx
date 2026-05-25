@@ -8,13 +8,26 @@ import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
 
 export function HeroSection() {
-  const { language } = useAppStore();
+  const { language, isAuthenticated, setShowAuthModal, setAuthMode } = useAppStore();
 
   const handleScrollTo = (id: string) => {
     const el = document.querySelector(id);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     }
+  };
+
+  const handleBookTrial = () => {
+    if (!isAuthenticated) {
+      setAuthMode("signup");
+      setShowAuthModal(true);
+      return;
+    }
+    // If authenticated, redirect to WhatsApp
+    const message = language === "en"
+      ? "Hi Tina! I'd like to book a free trial lesson."
+      : "Hallo Tina! Ich möchte eine kostenlose Probestunde buchen.";
+    window.open(`https://wa.me/4367763401913?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   return (
@@ -92,7 +105,7 @@ export function HeroSection() {
               <Button
                 size="lg"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 hover:shadow-emerald-300/50 transition-all text-base px-8 h-12"
-                onClick={() => window.open("https://wa.me/4367763401913", "_blank")}
+                onClick={handleBookTrial}
               >
                 {t("heroCta", language)}
                 <ArrowRight className="size-4 ml-1" />

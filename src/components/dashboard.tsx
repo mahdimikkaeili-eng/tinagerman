@@ -169,7 +169,7 @@ export function Dashboard() {
   useEffect(() => {
     if (!user || activeDashboardTab !== "bookings") return;
     setBookingsLoading(true);
-    fetch(`/api/bookings?userId=${user.id}`)
+    fetch(`/api/bookings?userId=${user.id}`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         setBookings(data.bookings || data || []);
@@ -185,8 +185,11 @@ export function Dashboard() {
   useEffect(() => {
     if (!user || activeDashboardTab !== "homework") return;
     setHomeworkLoading(true);
-    fetch(`/api/homework?studentId=${user.id}`)
-      .then((res) => res.json())
+    fetch(`/api/homework?studentId=${user.id}`, { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch homework');
+        return res.json();
+      })
       .then((data) => {
         setHomework(data.homeworks || data.homework || []);
         setHomeworkLoading(false);

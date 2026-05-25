@@ -32,11 +32,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create Tina as teacher using upsert
+    // Create Tina as teacher using upsert - always update password on force
     const tinaPassword = hashPassword('Tina2024!')
     const tina = await db.user.upsert({
       where: { email: 'tina@tinagerman.com' },
-      update: {},
+      update: force ? { password: tinaPassword } : {},
       create: {
         email: 'tina@tinagerman.com',
         name: 'Tina',

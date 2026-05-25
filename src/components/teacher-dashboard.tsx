@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarPlus,
+  Star,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,6 +171,68 @@ export function TeacherDashboard() {
     start.setHours(0, 0, 0, 0);
     return start;
   });
+
+  // Testimonials/Reviews
+  const [reviews, setReviews] = useState<Array<{
+    id: string;
+    rating: number;
+    comment: string;
+    isApproved: boolean;
+    createdAt: string;
+    user: { id: string; name: string; germanLevel: string | null };
+  }>>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewActionId, setReviewActionId] = useState<string | null>(null);
+
+  // Load reviews
+  useEffect(() => {
+    if (activeTab !== "reviews") return;
+    setReviewsLoading(true);
+    fetch("/api/testimonials?approvedOnly=false", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        setReviews(data.testimonials || []);
+        setReviewsLoading(false);
+      })
+      .catch(() => {
+        setReviews([]);
+        setReviewsLoading(false);
+      });
+  }, [activeTab]);
+
+  const handleApproveReview = async (id: string, isApproved: boolean) => {
+    setReviewActionId(id);
+    try {
+      await fetch(`/api/testimonials/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isApproved }),
+      });
+      setReviews((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, isApproved } : r))
+      );
+    } catch {
+      // silently fail
+    } finally {
+      setReviewActionId(null);
+    }
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    setReviewActionId(id);
+    try {
+      await fetch(`/api/testimonials/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      setReviews((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      // silently fail
+    } finally {
+      setReviewActionId(null);
+    }
+  };
 
   // Load stats and bookings
   useEffect(() => {
@@ -395,6 +459,7 @@ export function TeacherDashboard() {
     { id: "bookings", label: t("teacherBookingsTab", language), icon: Calendar },
     { id: "students", label: t("teacherStudentsTab", language), icon: Users },
     { id: "chat", label: t("chatWithStudents", language), icon: MessageCircle },
+    { id: "reviews", label: language === "en" ? "Reviews" : "Bewertungen", icon: Star },
     { id: "schedule", label: t("teacherScheduleTab", language), icon: Clock },
   ];
 
@@ -478,7 +543,7 @@ export function TeacherDashboard() {
             {/* Mobile tabs */}
             <div className="lg:hidden mb-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="w-full grid grid-cols-5">
+                <TabsList className="w-full grid grid-cols-6">
                   {sidebarItems.map((item) => (
                     <TabsTrigger key={item.id} value={item.id} className="text-xs px-1">
                       <item.icon className="size-4" />
@@ -847,6 +912,142 @@ export function TeacherDashboard() {
                   </CardContent>
                 )}
               </Card>
+            )}
+
+            {/* REVIEWS TAB */}
+            {activeTab === "reviews" && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-slate-900">
+                  {language === "en" ? "Student Reviews" : "Schülerbewertungen"}
+                </h2>
+
+                {reviewsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="size-8 animate-spin text-emerald-600" />
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Star className="size-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-400">
+                        {language === "en" ? "No reviews yet" : "Noch keine Bewertungen"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Pending reviews */}
+                    {reviews.filter((r) => !r.isApproved).length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-amber-700 mb-3">
+                          {language === "en" ? "⏳ Pending Approval" : "⏳ Ausstehende Freigabe"}
+                        </h3>
+                        <div className="space-y-3">
+                          {reviews.filter((r) => !r.isApproved).map((review) => (
+                            <Card key={review.id} className="border-amber-200 bg-amber-50/30">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Avatar className="size-7 bg-emerald-100">
+                                        <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                                          {review.user.name.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-sm font-medium text-slate-900">{review.user.name}</span>
+                                      <div className="flex gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                          <Star key={s} className={`size-3 ${s <= review.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-slate-600">{review.comment}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                      onClick={() => handleApproveReview(review.id, true)}
+                                      disabled={reviewActionId === review.id}
+                                    >
+                                      {reviewActionId === review.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3 mr-1" />}
+                                      {language === "en" ? "Approve" : "Genehmigen"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-red-300 text-red-600 hover:bg-red-50"
+                                      onClick={() => handleDeleteReview(review.id)}
+                                      disabled={reviewActionId === review.id}
+                                    >
+                                      <Trash2 className="size-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Approved reviews */}
+                    {reviews.filter((r) => r.isApproved).length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-emerald-700 mb-3">
+                          {language === "en" ? "✅ Approved Reviews" : "✅ Genehmigte Bewertungen"}
+                        </h3>
+                        <div className="space-y-3">
+                          {reviews.filter((r) => r.isApproved).map((review) => (
+                            <Card key={review.id} className="border-emerald-200">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Avatar className="size-7 bg-emerald-100">
+                                        <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                                          {review.user.name.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-sm font-medium text-slate-900">{review.user.name}</span>
+                                      <div className="flex gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                          <Star key={s} className={`size-3 ${s <= review.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-slate-600">{review.comment}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-amber-300 text-amber-600 hover:bg-amber-50"
+                                      onClick={() => handleApproveReview(review.id, false)}
+                                      disabled={reviewActionId === review.id}
+                                    >
+                                      {language === "en" ? "Unapprove" : "Zurückziehen"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-red-300 text-red-600 hover:bg-red-50"
+                                      onClick={() => handleDeleteReview(review.id)}
+                                      disabled={reviewActionId === review.id}
+                                    >
+                                      <Trash2 className="size-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
 
             {/* SCHEDULE TAB */}

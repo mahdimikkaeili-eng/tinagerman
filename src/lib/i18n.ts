@@ -9,6 +9,7 @@ const translations = {
     navContact: "Contact",
     navPlacement: "Placement Test",
     navFaq: "FAQ",
+    navPricing: "Pricing",
     login: "Log In",
     signup: "Sign Up",
 
@@ -227,6 +228,10 @@ const translations = {
     resourcesCtaDesc: "Take our free placement test and start learning with personalized lessons tailored to your level.",
     resourcesCtaButton: "Take the Placement Test",
     navResources: "Resources",
+
+    // Pricing
+    pricingTitle: "Simple, Transparent Pricing",
+    pricingSubtitle: "Start with a free trial, then choose the plan that fits your learning goals",
   },
   de: {
     // Header
@@ -236,6 +241,7 @@ const translations = {
     navContact: "Kontakt",
     navPlacement: "Einstufungstest",
     navFaq: "FAQ",
+    navPricing: "Preise",
     login: "Anmelden",
     signup: "Registrieren",
 
@@ -454,6 +460,10 @@ const translations = {
     resourcesCtaDesc: "Machen Sie unseren kostenlosen Einstufungstest und beginnen Sie mit personalisiertem Unterricht, der auf Ihr Niveau zugeschnitten ist.",
     resourcesCtaButton: "Einstufungstest machen",
     navResources: "Ressourcen",
+
+    // Pricing
+    pricingTitle: "Einfache, transparente Preise",
+    pricingSubtitle: "Beginnen Sie mit einer kostenlosen Probestunde und wählen Sie dann das Paket, das zu Ihren Lernzielen passt",
   },
 } as const;
 
