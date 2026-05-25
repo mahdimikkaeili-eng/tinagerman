@@ -5,7 +5,7 @@ import { getUserIdFromRequest } from '@/lib/auth'
 // GET /api/messages/conversations - List all conversations for the current user
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(

@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
-import { clearSessionCookie } from '@/lib/auth'
+import { cookies } from 'next/headers'
 
 export async function POST() {
+  const cookieStore = await cookies()
+  cookieStore.delete('session_user_id')
+
   return NextResponse.json(
     { message: 'Logged out successfully' },
-    {
-      status: 200,
-      headers: {
-        'Set-Cookie': clearSessionCookie(),
-      },
-    }
+    { status: 200 }
   )
 }

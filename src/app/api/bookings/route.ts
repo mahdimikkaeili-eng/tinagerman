@@ -5,7 +5,7 @@ import { getUserIdFromRequest } from '@/lib/auth'
 // POST /api/bookings - Create a new booking
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || getUserIdFromRequest(request)
+    const userId = searchParams.get('userId') || await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(

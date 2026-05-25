@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 // POST /api/testimonials - Submit a testimonial (logged-in users only)
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(

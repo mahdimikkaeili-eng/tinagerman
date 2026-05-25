@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { db } from '@/lib/db'
-import { hashPassword, sanitizeUser, setSessionCookie } from '@/lib/auth'
+import { hashPassword, sanitizeUser, getUserIdFromRequest } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,17 +61,71 @@ export async function POST(request: NextRequest) {
 
     const sanitizedUser = sanitizeUser(user)
 
+    // Set session cookie using Next.js cookies API
+    const cookieStore = await cookies()
+    cookieStore.set('session_user_id', user.id, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      secure: process.env.NODE_ENV === 'production',
+    })
+
     return NextResponse.json(
       { user: sanitizedUser, message: 'Registration successful' },
-      {
-        status: 201,
-        headers: {
-          'Set-Cookie': setSessionCookie(user.id),
-        },
-      }
+      { status: 201 }
     )
   } catch (error) {
     console.error('Registration error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT /api/auth/register - Update user profile
+export async function PUT(request: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(request)
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { name, phone, nativeLanguage, germanLevel } = body
+
+    // Validate at least name is provided
+    if (!name) {
+      return NextResponse.json(
+        { error: 'Name is required' },
+        { status: 400 }
+      )
+    }
+
+    // Update user
+    const user = await db.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        phone: phone || null,
+        nativeLanguage: nativeLanguage || null,
+        germanLevel: germanLevel || null,
+      },
+    })
+
+    const sanitizedUser = sanitizeUser(user)
+
+    return NextResponse.json(
+      { user: sanitizedUser, message: 'Profile updated successfully' },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Update profile error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

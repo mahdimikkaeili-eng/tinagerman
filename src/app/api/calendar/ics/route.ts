@@ -6,7 +6,7 @@ import { generateIcsContent } from '@/lib/calendar'
 // GET /api/calendar/ics?bookingId=xxx - Download .ics file for a booking
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(

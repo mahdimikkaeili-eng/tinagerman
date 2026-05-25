@@ -85,6 +85,7 @@ export function AuthModal() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
@@ -120,6 +121,7 @@ export function AuthModal() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: signupEmail,
           name: signupName,

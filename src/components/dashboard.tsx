@@ -329,8 +329,8 @@ export function Dashboard() {
       const res = await fetch("/api/auth/register", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          userId: user.id,
           name: profileName,
           phone: profilePhone,
           nativeLanguage: profileNativeLang,

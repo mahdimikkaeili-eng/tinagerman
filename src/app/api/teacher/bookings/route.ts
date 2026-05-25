@@ -5,7 +5,7 @@ import { getUserIdFromRequest } from '@/lib/auth'
 // GET /api/teacher/bookings - Get ALL bookings (teacher view)
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(

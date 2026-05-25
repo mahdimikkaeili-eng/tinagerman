@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { db } from '@/lib/db'
-import { verifyPassword, sanitizeUser, setSessionCookie } from '@/lib/auth'
+import { verifyPassword, sanitizeUser } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,14 +40,19 @@ export async function POST(request: NextRequest) {
 
     const sanitizedUser = sanitizeUser(user)
 
+    // Set session cookie using Next.js cookies API for reliability
+    const cookieStore = await cookies()
+    cookieStore.set('session_user_id', user.id, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      secure: process.env.NODE_ENV === 'production',
+    })
+
     return NextResponse.json(
       { user: sanitizedUser, message: 'Login successful' },
-      {
-        status: 200,
-        headers: {
-          'Set-Cookie': setSessionCookie(user.id),
-        },
-      }
+      { status: 200 }
     )
   } catch (error) {
     console.error('Login error:', error)

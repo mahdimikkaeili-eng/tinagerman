@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'crypto'
+import { cookies } from 'next/headers'
 
 /**
  * Hash a password using SHA-256 with a salt
@@ -24,13 +25,6 @@ export function verifyPassword(password: string, storedHash: string): boolean {
 }
 
 /**
- * Generate a simple session token
- */
-export function generateToken(): string {
-  return randomBytes(32).toString('hex')
-}
-
-/**
  * Omit password from user object
  */
 export function sanitizeUser<T extends Record<string, unknown>>(user: T): Omit<T, 'password'> {
@@ -39,9 +33,19 @@ export function sanitizeUser<T extends Record<string, unknown>>(user: T): Omit<T
 }
 
 /**
- * Get user ID from request cookies (simple session)
+ * Get user ID from request cookies (supports both Next.js cookies API and header parsing)
  */
-export function getUserIdFromRequest(request: Request): string | null {
+export async function getUserIdFromRequest(request: Request): Promise<string | null> {
+  // Try Next.js cookies API first (more reliable in App Router)
+  try {
+    const cookieStore = await cookies()
+    const userId = cookieStore.get('session_user_id')?.value
+    if (userId) return userId
+  } catch {
+    // cookies() might not work in all contexts
+  }
+
+  // Fallback to parsing cookie header
   const cookieHeader = request.headers.get('cookie')
   if (!cookieHeader) return null
 
@@ -55,18 +59,4 @@ export function getUserIdFromRequest(request: Request): string | null {
   )
 
   return cookies['session_user_id'] || null
-}
-
-/**
- * Set session cookie in response headers
- */
-export function setSessionCookie(userId: string): string {
-  return `session_user_id=${userId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 7}`
-}
-
-/**
- * Clear session cookie
- */
-export function clearSessionCookie(): string {
-  return 'session_user_id=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'
 }

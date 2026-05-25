@@ -6,7 +6,7 @@ module.exports = {
       cwd: '/home/tinagerman/app/.next/standalone',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3001,
         HOSTNAME: '0.0.0.0',
       },
       // تنظیمات ریستارت خودکار - Auto restart settings

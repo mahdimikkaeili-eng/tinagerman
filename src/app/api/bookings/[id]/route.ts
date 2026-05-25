@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromRequest(request)
 
     if (!userId) {
       return NextResponse.json(
