@@ -3,54 +3,59 @@ import { db } from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
 
 // POST /api/seed - Seed the database with initial data
+// This endpoint is SAFE: it uses upsert/create-only logic and will NEVER delete existing users.
+// Use ?force=true to re-seed courses and testimonials (users are always preserved).
 export async function POST(request: Request) {
   try {
     const url = new URL(request.url)
     const force = url.searchParams.get('force')
 
-    // Check if already seeded
-    const existingTeacher = await db.user.findFirst({ where: { role: 'teacher' } })
-    
-    if (existingTeacher && !force) {
-      return NextResponse.json(
-        { error: 'Database already contains data. Use ?force=true to re-seed.' },
-        { status: 400 }
-      )
+    // ── Ensure Tina's teacher account exists (never delete, always preserve) ──
+    const existingTina = await db.user.findFirst({ where: { role: 'teacher' } })
+
+    let tina: { id: string; name: string; email: string }
+
+    if (!existingTina) {
+      // First time: create Tina
+      const tinaPassword = hashPassword('Tina2024!')
+      const created = await db.user.create({
+        data: {
+          email: 'tina@tinagerman.com',
+          name: 'Tina',
+          password: tinaPassword,
+          role: 'teacher',
+          bio: "Hi! I'm Tina, a certified German teacher from Vienna, Austria. I've been teaching German for over 8 years and love helping students discover the beauty of the German language. Whether you're a complete beginner or preparing for a Goethe exam, I'm here to guide you!",
+          nativeLanguage: 'de',
+          germanLevel: 'C2',
+          timezone: 'Europe/Vienna',
+        },
+      })
+      tina = { id: created.id, name: created.name, email: created.email }
+    } else {
+      // Tina already exists — just reset her password if force=true
+      if (force) {
+        const tinaPassword = hashPassword('Tina2024!')
+        await db.user.update({
+          where: { id: existingTina.id },
+          data: { password: tinaPassword },
+        })
+      }
+      tina = { id: existingTina.id, name: existingTina.name, email: existingTina.email }
     }
 
-    // If force, try to clean up (ignore errors)
+    // ── Ensure courses exist (create only, never delete existing) ──
     if (force) {
+      // On force, only delete non-user data
       try {
-        await db.$executeRawUnsafe('DELETE FROM SiteConfig')
         await db.$executeRawUnsafe('DELETE FROM Testimonial')
-        await db.$executeRawUnsafe('DELETE FROM Homework')
-        await db.$executeRawUnsafe('DELETE FROM Message')
-        await db.$executeRawUnsafe('DELETE FROM Booking')
-        await db.$executeRawUnsafe('DELETE FROM Course')
-        await db.$executeRawUnsafe('DELETE FROM User')
+        await db.$executeRawUnsafe('DELETE FROM SiteConfig')
+        // Do NOT delete Homework, Message, Booking — preserve user data!
+        // Only recreate courses if needed
       } catch {
-        // Ignore cleanup errors, try to insert anyway
+        // Ignore cleanup errors
       }
     }
 
-    // Create Tina as teacher using upsert - always update password on force
-    const tinaPassword = hashPassword('Tina2024!')
-    const tina = await db.user.upsert({
-      where: { email: 'tina@tinagerman.com' },
-      update: force ? { password: tinaPassword } : {},
-      create: {
-        email: 'tina@tinagerman.com',
-        name: 'Tina',
-        password: tinaPassword,
-        role: 'teacher',
-        bio: "Hi! I'm Tina, a certified German teacher from Vienna, Austria. I've been teaching German for over 8 years and love helping students discover the beauty of the German language. Whether you're a complete beginner or preparing for a Goethe exam, I'm here to guide you!",
-        nativeLanguage: 'de',
-        germanLevel: 'C2',
-        timezone: 'Europe/Vienna',
-      },
-    })
-
-    // Create courses
     const courseData = [
       {
         title: 'German A1 – Complete Beginner',
@@ -100,21 +105,20 @@ export async function POST(request: Request) {
         category: 'conversation',
         isActive: true,
       },
-
     ]
 
-    const courses: { id: string; level: string; title: string; titleDe: string; description: string; descriptionDe: string; duration: number; priceNote: string; language: string; category: string | null; isActive: boolean; createdAt: Date; updatedAt: Date }[] = []
+    const courses: { id: string; level: string; title: string }[] = []
     for (const data of courseData) {
       const existing = await db.course.findFirst({ where: { level: data.level } })
       if (!existing) {
         const course = await db.course.create({ data })
-        courses.push(course)
+        courses.push({ id: course.id, level: course.level, title: course.title })
       } else {
-        courses.push(existing)
+        courses.push({ id: existing.id, level: existing.level, title: existing.title })
       }
     }
 
-    // Create sample student users for testimonials
+    // ── Create sample student users (only if they don't exist already) ──
     const studentData = [
       {
         email: 'sarah.johnson@email.com',
@@ -169,7 +173,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create sample approved testimonials
+    // ── Create sample approved testimonials (only if they don't exist) ──
     const testimonialData = [
       {
         userId: students[0].id,
