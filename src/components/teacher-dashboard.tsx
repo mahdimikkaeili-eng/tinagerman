@@ -30,6 +30,9 @@ import {
   Info,
   Mail,
   Edit3,
+  Paperclip,
+  Download,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,6 +218,8 @@ export function TeacherDashboard() {
     dueDate: string | null;
     status: string;
     feedback: string | null;
+    attachment: string | null;
+    studentAttachment: string | null;
     createdAt: string;
     student: { id: string; name: string; avatar: string | null };
     teacher: { id: string; name: string; avatar: string | null };
@@ -222,7 +227,8 @@ export function TeacherDashboard() {
   const [teacherHomework, setTeacherHomework] = useState<TeacherHomework[]>([]);
   const [homeworkLoading, setHomeworkLoading] = useState(true);
   const [showNewHomeworkForm, setShowNewHomeworkForm] = useState(false);
-  const [newHomework, setNewHomework] = useState({ studentId: "", title: "", description: "", dueDate: "" });
+  const [newHomework, setNewHomework] = useState({ studentId: "", title: "", description: "", dueDate: "", attachment: "" });
+  const [homeworkUploading, setHomeworkUploading] = useState(false);
   const [homeworkFilter, setHomeworkFilter] = useState("all");
   const [feedbackInput, setFeedbackInput] = useState<Record<string, string>>({});
   const [submittingHomeworkId, setSubmittingHomeworkId] = useState<string | null>(null);
@@ -549,10 +555,11 @@ export function TeacherDashboard() {
           title: newHomework.title,
           description: newHomework.description,
           dueDate: newHomework.dueDate || null,
+          attachment: newHomework.attachment || null,
         }),
       });
       if (res.ok) {
-        setNewHomework({ studentId: "", title: "", description: "", dueDate: "" });
+        setNewHomework({ studentId: "", title: "", description: "", dueDate: "", attachment: "" });
         setShowNewHomeworkForm(false);
         // Reload homework
         if (user) {
@@ -1374,6 +1381,52 @@ export function TeacherDashboard() {
                             onChange={(e) => setNewHomework((prev) => ({ ...prev, dueDate: e.target.value }))}
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label>{t("attachFile", language)}</Label>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                              disabled={homeworkUploading}
+                              onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*,.pdf';
+                                input.onchange = async (e) => {
+                                  const file = (e.target as HTMLInputElement).files?.[0];
+                                  if (!file) return;
+                                  setHomeworkUploading(true);
+                                  try {
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+                                    if (uploadRes.ok) {
+                                      const data = await uploadRes.json();
+                                      setNewHomework((prev) => ({ ...prev, attachment: data.url }));
+                                    }
+                                  } catch { /* silently fail */ }
+                                  finally { setHomeworkUploading(false); }
+                                };
+                                input.click();
+                              }}
+                            >
+                              {homeworkUploading ? <Loader2 className="size-4 animate-spin mr-1" /> : <Paperclip className="size-4 mr-1" />}
+                              {homeworkUploading ? t("uploading", language) : t("attachFile", language)}
+                            </Button>
+                            {newHomework.attachment && (
+                              <div className="flex items-center gap-1 text-xs text-emerald-600">
+                                <ImageIcon className="size-3" />
+                                <span>{t("attachment", language)}</span>
+                                <button
+                                  className="text-red-400 hover:text-red-600 ml-1"
+                                  onClick={() => setNewHomework((prev) => ({ ...prev, attachment: "" }))}
+                                >✕</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
@@ -1387,7 +1440,7 @@ export function TeacherDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => { setShowNewHomeworkForm(false); setNewHomework({ studentId: "", title: "", description: "", dueDate: "" }); }}
+                            onClick={() => { setShowNewHomeworkForm(false); setNewHomework({ studentId: "", title: "", description: "", dueDate: "", attachment: "" }); }}
                           >
                             {t("cancel", language)}
                           </Button>
@@ -1431,6 +1484,40 @@ export function TeacherDashboard() {
                                 <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
                                   <Clock className="size-3" />
                                   {t("dueDate", language)}: {formatDate(hw.dueDate)}
+                                </div>
+                              )}
+                              {hw.attachment && (
+                                <div className="mt-2 p-2 rounded-lg bg-blue-50 border border-blue-200">
+                                  <div className="flex items-center gap-1 text-xs text-blue-600 font-medium mb-1">
+                                    <Paperclip className="size-3" />
+                                    {t("attachment", language)}
+                                  </div>
+                                  {hw.attachment.includes('.pdf') ? (
+                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
+                                      <Download className="size-3" />{t("viewFile", language)}
+                                    </a>
+                                  ) : (
+                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer">
+                                      <img src={hw.attachment} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                              {hw.studentAttachment && (
+                                <div className="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
+                                  <div className="flex items-center gap-1 text-xs text-amber-600 font-medium mb-1">
+                                    <ImageIcon className="size-3" />
+                                    {t("studentAttachment", language)}
+                                  </div>
+                                  {hw.studentAttachment.includes('.pdf') ? (
+                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
+                                      <Download className="size-3" />{t("viewFile", language)}
+                                    </a>
+                                  ) : (
+                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer">
+                                      <img src={hw.studentAttachment} alt="Student submission" className="max-h-32 rounded border border-amber-200" />
+                                    </a>
+                                  )}
                                 </div>
                               )}
                               {hw.feedback && (

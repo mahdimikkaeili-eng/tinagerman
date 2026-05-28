@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { studentId, title, description, dueDate } = body
+    const { studentId, title, description, dueDate, attachment } = body
 
     // Validate required fields
     if (!studentId || !title || !description) {
@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
         title,
         description,
         dueDate: dueDate || null,
+        attachment: attachment || null,
         status: 'assigned',
       },
       include: {

@@ -81,16 +81,18 @@ model Message {
 }
 
 model Homework {
-  id          String   @id @default(cuid())
-  teacherId   String
-  studentId   String
-  title       String
-  description String
-  dueDate     String?  // ISO date string
-  status      String   @default("assigned") // "assigned", "submitted", "reviewed"
-  feedback    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  teacherId          String
+  studentId          String
+  title              String
+  description        String
+  dueDate            String?  // ISO date string
+  status             String   @default("assigned") // "assigned", "submitted", "reviewed"
+  feedback           String?
+  attachment         String?  // Teacher's attachment URL
+  studentAttachment  String?  // Student's submission attachment URL
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   teacher     User     @relation("TeacherHomework", fields: [teacherId], references: [id])
   student     User     @relation("StudentHomework", fields: [studentId], references: [id])

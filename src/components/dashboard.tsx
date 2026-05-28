@@ -26,6 +26,9 @@ import {
   ClipboardList,
   Info,
   Mail,
+  Paperclip,
+  Download,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +76,8 @@ interface Homework {
   dueDate: string | null;
   status: string;
   feedback: string | null;
+  attachment: string | null;
+  studentAttachment: string | null;
   createdAt: string;
 }
 
@@ -156,6 +161,7 @@ export function Dashboard() {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [homeworkLoading, setHomeworkLoading] = useState(true);
   const [submittingHomeworkId, setSubmittingHomeworkId] = useState<string | null>(null);
+  const [studentAttachmentUploading, setStudentAttachmentUploading] = useState<string | null>(null); // homework id being uploaded
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -1289,6 +1295,44 @@ export function Dashboard() {
                                 </div>
                               )}
 
+                              {/* Teacher's attachment */}
+                              {hw.attachment && (
+                                <div className="mt-2 p-2 rounded-lg bg-blue-50 border border-blue-200">
+                                  <div className="flex items-center gap-1 text-xs text-blue-600 font-medium mb-1">
+                                    <Paperclip className="size-3" />
+                                    {t("attachment", language)}
+                                  </div>
+                                  {hw.attachment.includes('.pdf') ? (
+                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
+                                      <Download className="size-3" />{t("viewFile", language)}
+                                    </a>
+                                  ) : (
+                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer">
+                                      <img src={hw.attachment} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Student's own submitted attachment */}
+                              {hw.studentAttachment && (
+                                <div className="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
+                                  <div className="flex items-center gap-1 text-xs text-amber-600 font-medium mb-1">
+                                    <ImageIcon className="size-3" />
+                                    {t("studentAttachment", language)}
+                                  </div>
+                                  {hw.studentAttachment.includes('.pdf') ? (
+                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
+                                      <Download className="size-3" />{t("viewFile", language)}
+                                    </a>
+                                  ) : (
+                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer">
+                                      <img src={hw.studentAttachment} alt="My submission" className="max-h-32 rounded border border-amber-200" />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
                               {/* Feedback */}
                               {hw.feedback && (
                                 <div className="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
@@ -1304,7 +1348,50 @@ export function Dashboard() {
 
                               {/* Submit button for assigned homework */}
                               {hw.status === "assigned" && (
-                                <div className="mt-3">
+                                <div className="mt-3 space-y-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                    disabled={studentAttachmentUploading === hw.id}
+                                    onClick={() => {
+                                      const input = document.createElement('input');
+                                      input.type = 'file';
+                                      input.accept = 'image/*,.pdf';
+                                      input.onchange = async (e) => {
+                                        const file = (e.target as HTMLInputElement).files?.[0];
+                                        if (!file) return;
+                                        setStudentAttachmentUploading(hw.id);
+                                        try {
+                                          const formData = new FormData();
+                                          formData.append('file', file);
+                                          const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+                                          if (uploadRes.ok) {
+                                            const data = await uploadRes.json();
+                                            // Save attachment and submit
+                                            const res = await fetch(`/api/homework/${hw.id}`, {
+                                              method: "PATCH",
+                                              headers: { "Content-Type": "application/json" },
+                                              credentials: "include",
+                                              body: JSON.stringify({ status: "submitted", studentAttachment: data.url }),
+                                            });
+                                            if (res.ok && user) {
+                                              const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
+                                              if (homeworkRes.ok) {
+                                                const hwData = await homeworkRes.json();
+                                                setHomework(hwData.homeworks || hwData.homework || []);
+                                              }
+                                            }
+                                          }
+                                        } catch { /* silently fail */ }
+                                        finally { setStudentAttachmentUploading(null); }
+                                      };
+                                      input.click();
+                                    }}
+                                  >
+                                    {studentAttachmentUploading === hw.id ? <Loader2 className="size-4 animate-spin mr-1" /> : <Paperclip className="size-4 mr-1" />}
+                                    {studentAttachmentUploading === hw.id ? t("uploading", language) : t("attachFile") + " & " + t("submitHomework", language)}
+                                  </Button>
                                   <Button
                                     size="sm"
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white"

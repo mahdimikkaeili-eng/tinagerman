@@ -42,7 +42,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status, feedback } = body
+    const { status, feedback, studentAttachment } = body
 
     // Validate status
     const validStatuses = ['assigned', 'submitted', 'reviewed']
@@ -76,6 +76,7 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (feedback !== undefined) updateData.feedback = feedback
+    if (studentAttachment !== undefined) updateData.studentAttachment = studentAttachment
 
     const homework = await db.homework.update({
       where: { id },

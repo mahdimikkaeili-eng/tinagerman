@@ -285,6 +285,12 @@ const translations = {
     uploadAvatar: "Change Avatar",
     uploadFile: "Upload File",
     uploading: "Uploading...",
+    attachFile: "Attach File",
+    attachment: "Attachment",
+    studentAttachment: "Student's File",
+    noAttachment: "No file attached",
+    viewFile: "View File",
+    downloadFile: "Download",
   },
   de: {
     // Header
@@ -570,6 +576,12 @@ const translations = {
     uploadAvatar: "Avatar ändern",
     uploadFile: "Datei hochladen",
     uploading: "Hochladen...",
+    attachFile: "Datei anhängen",
+    attachment: "Anhang",
+    studentAttachment: "Schülerdatei",
+    noAttachment: "Keine Datei angehängt",
+    viewFile: "Datei ansehen",
+    downloadFile: "Herunterladen",
   },
 } as const;
 
