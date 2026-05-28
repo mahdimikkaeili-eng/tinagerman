@@ -22,6 +22,14 @@ import {
   Trash2,
   BookOpen,
   Plus,
+  Menu,
+  Home,
+  GraduationCap,
+  DollarSign,
+  ClipboardList,
+  Info,
+  Mail,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +51,14 @@ import {
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
 import { NotificationBell } from "./notification-bell";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 interface TeacherBooking {
   id: string;
@@ -125,7 +141,7 @@ const statusColors: Record<string, string> = {
 };
 
 // Google Calendar URL generator
-function generateGoogleCalendarUrl(booking: TeacherBooking) {
+function generateGoogleCalendarUrl(booking: TeacherBooking, timezone?: string) {
   const startDate = new Date(`${booking.date}T${booking.time}:00`);
   const endDate = new Date(startDate.getTime() + 50 * 60 * 1000);
   const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -134,13 +150,15 @@ function generateGoogleCalendarUrl(booking: TeacherBooking) {
     `German lesson with ${booking.user.name}\nLevel: ${booking.course.level}${booking.isTrial ? "\n(Free Trial)" : ""}`
   );
   const location = encodeURIComponent(booking.meetLink || "");
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${details}&location=${location}&ctz=Europe/Vienna`;
+  const ctz = timezone || "Europe/Vienna";
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${details}&location=${location}&ctz=${encodeURIComponent(ctz)}`;
 }
 
 export function TeacherDashboard() {
   const { language, setLanguage, user, logout } = useAppStore();
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Stats
   const [stats, setStats] = useState<TeacherStats | null>(null);
@@ -457,6 +475,53 @@ export function TeacherDashboard() {
     logout();
   };
 
+  // Avatar upload handler
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const { url } = await uploadRes.json();
+
+      // Update user profile with new avatar
+      const updateRes = await fetch("/api/auth/register", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: user.name,
+          phone: user.phone || "",
+          nativeLanguage: user.nativeLanguage || "",
+          germanLevel: user.germanLevel || "",
+          avatar: url,
+        }),
+      });
+
+      if (updateRes.ok) {
+        const updatedUser = { ...user, avatar: url };
+        useAppStore.getState().login(updatedUser);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   // Homework status colors
   const homeworkStatusColors: Record<string, string> = {
     assigned: "bg-blue-100 text-blue-700 border-blue-200",
@@ -616,7 +681,7 @@ export function TeacherDashboard() {
                   <div className="flex-1 bg-red-500" />
                   <div className="flex-1 bg-amber-500" />
                 </div>
-                <span className="text-lg font-bold text-slate-900">Deutsch mit Tina</span>
+                <a href="/" className="text-lg font-bold text-slate-900 hover:text-emerald-600 transition-colors">Deutsch mit Tina</a>
               </div>
               <Separator orientation="vertical" className="h-6 hidden sm:block" />
               <span className="text-sm font-medium text-emerald-600 hidden sm:block">
@@ -625,14 +690,61 @@ export function TeacherDashboard() {
             </div>
             <div className="flex items-center gap-3">
               <NotificationBell />
+              {/* Site Navigation Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-slate-600 hover:text-emerald-600">
+                    <Menu className="size-4 mr-1" />
+                    <span className="hidden sm:inline text-xs font-semibold">{language === "en" ? "Menu" : "Menü"}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs text-slate-400">{language === "en" ? "Site Navigation" : "Seitennavigation"}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <a href="/#home" className="flex items-center gap-2 cursor-pointer"><Home className="size-4" />{t("navHome", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#courses" className="flex items-center gap-2 cursor-pointer"><GraduationCap className="size-4" />{t("navCourses", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#pricing" className="flex items-center gap-2 cursor-pointer"><DollarSign className="size-4" />{t("navPricing", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#placement-test" className="flex items-center gap-2 cursor-pointer"><ClipboardList className="size-4" />{t("navPlacement", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#about" className="flex items-center gap-2 cursor-pointer"><Info className="size-4" />{t("navAbout", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#contact" className="flex items-center gap-2 cursor-pointer"><Mail className="size-4" />{t("navContact", language)}</a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" size="sm" onClick={() => setLanguage(language === "en" ? "de" : "en")} className="text-slate-600 hover:text-emerald-600">
                 <Globe className="size-4 mr-1" />
                 <span className="text-xs font-semibold">{language === "en" ? "DE" : "EN"}</span>
               </Button>
               <div className="flex items-center gap-2">
-                <Avatar className="size-8">
-                  <img src="/tina-avatar.jpg" alt="Tina" className="w-full h-full object-cover rounded-full" />
-                </Avatar>
+                <div className="relative group">
+                  <Avatar className="size-8">
+                    <img src={user?.avatar || "/tina-avatar.jpg"} alt="Tina" className="w-full h-full object-cover rounded-full" />
+                  </Avatar>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    {avatarUploading ? (
+                      <Loader2 className="size-3 text-white animate-spin" />
+                    ) : (
+                      <Edit3 className="size-3 text-white" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      disabled={avatarUploading}
+                    />
+                  </label>
+                </div>
                 <span className="text-sm font-medium text-slate-700 hidden sm:block">{user?.name}</span>
               </div>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-500 hover:text-red-600">
@@ -652,7 +764,7 @@ export function TeacherDashboard() {
               <CardContent className="p-3">
                 <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-emerald-50 border border-emerald-200">
                   <Avatar className="size-10">
-                    <img src="/tina-avatar.jpg" alt="Tina" className="w-full h-full object-cover rounded-full" />
+                    <img src={user?.avatar || "/tina-avatar.jpg"} alt="Tina" className="w-full h-full object-cover rounded-full" />
                   </Avatar>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">Tina</p>
@@ -865,7 +977,7 @@ export function TeacherDashboard() {
                                   Meet
                                 </Button>
                               )}
-                              <Button size="sm" variant="ghost" onClick={() => window.open(generateGoogleCalendarUrl(booking), "_blank")}>
+                              <Button size="sm" variant="ghost" onClick={() => window.open(generateGoogleCalendarUrl(booking, "Europe/Vienna"), "_blank")}>
                                 <CalendarPlus className="size-3 mr-1" />
                                 {t("addToCalendar", language)}
                               </Button>

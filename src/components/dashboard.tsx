@@ -19,6 +19,13 @@ import {
   AlertCircle,
   FileText,
   CalendarPlus,
+  Menu,
+  Home,
+  GraduationCap,
+  DollarSign,
+  ClipboardList,
+  Info,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +47,14 @@ import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
 import { BookingModal } from "./booking-modal";
 import { NotificationBell } from "./notification-bell";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 interface Booking {
   id: string;
@@ -131,6 +146,7 @@ export function Dashboard() {
   );
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Bookings state
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -337,6 +353,7 @@ export function Dashboard() {
           phone: profilePhone,
           nativeLanguage: profileNativeLang,
           germanLevel: profileGermanLevel,
+          avatar: user.avatar,
         }),
       });
 
@@ -369,6 +386,53 @@ export function Dashboard() {
       // continue anyway
     }
     logout();
+  };
+
+  // Avatar upload handler
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const { url } = await uploadRes.json();
+
+      // Update user profile with new avatar
+      const updateRes = await fetch("/api/auth/register", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: user.name,
+          phone: user.phone,
+          nativeLanguage: user.nativeLanguage,
+          germanLevel: user.germanLevel,
+          avatar: url,
+        }),
+      });
+
+      if (updateRes.ok) {
+        const updatedUser = { ...user, avatar: url };
+        useAppStore.getState().login(updatedUser);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   // Format date for display
@@ -443,9 +507,9 @@ export function Dashboard() {
                   <div className="flex-1 bg-red-500" />
                   <div className="flex-1 bg-amber-500" />
                 </div>
-                <span className="text-lg font-bold text-slate-900">
+                <a href="/" className="text-lg font-bold text-slate-900 hover:text-emerald-600 transition-colors">
                   Deutsch mit Tina
-                </span>
+                </a>
               </div>
               <Separator orientation="vertical" className="h-6 hidden sm:block" />
               <span className="text-sm font-medium text-slate-500 hidden sm:block">
@@ -457,6 +521,38 @@ export function Dashboard() {
             <div className="flex items-center gap-3">
               {/* Notification Bell */}
               <NotificationBell />
+
+              {/* Site Navigation Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-slate-600 hover:text-emerald-600">
+                    <Menu className="size-4 mr-1" />
+                    <span className="hidden sm:inline text-xs font-semibold">{language === "en" ? "Menu" : "Menü"}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs text-slate-400">{language === "en" ? "Site Navigation" : "Seitennavigation"}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <a href="/#home" className="flex items-center gap-2 cursor-pointer"><Home className="size-4" />{t("navHome", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#courses" className="flex items-center gap-2 cursor-pointer"><GraduationCap className="size-4" />{t("navCourses", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#pricing" className="flex items-center gap-2 cursor-pointer"><DollarSign className="size-4" />{t("navPricing", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#placement-test" className="flex items-center gap-2 cursor-pointer"><ClipboardList className="size-4" />{t("navPlacement", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#about" className="flex items-center gap-2 cursor-pointer"><Info className="size-4" />{t("navAbout", language)}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/#contact" className="flex items-center gap-2 cursor-pointer"><Mail className="size-4" />{t("navContact", language)}</a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Language switcher */}
               <Button
@@ -474,9 +570,13 @@ export function Dashboard() {
               {/* User avatar + name */}
               <div className="flex items-center gap-2">
                 <Avatar className="size-8 bg-emerald-100">
-                  <AvatarFallback className="bg-emerald-100 text-emerald-700 text-sm font-semibold">
-                    {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                  </AvatarFallback>
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user?.name || "Avatar"} className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <AvatarFallback className="bg-emerald-100 text-emerald-700 text-sm font-semibold">
+                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  )}
                 </Avatar>
                 <span className="text-sm font-medium text-slate-700 hidden sm:block">
                   {user?.name}
@@ -659,6 +759,41 @@ export function Dashboard() {
                         : "Profil erfolgreich aktualisiert!"}
                     </div>
                   )}
+
+                  {/* Avatar upload */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="relative group">
+                      <Avatar className="size-16 bg-emerald-100">
+                        {user?.avatar ? (
+                          <img src={user.avatar} alt={user?.name || "Avatar"} className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                          <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl font-semibold">
+                            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        {avatarUploading ? (
+                          <Loader2 className="size-5 text-white animate-spin" />
+                        ) : (
+                          <Edit3 className="size-4 text-white" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          className="hidden"
+                          onChange={handleAvatarUpload}
+                          disabled={avatarUploading}
+                        />
+                      </label>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">{user?.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {avatarUploading ? t("uploading", language) : t("uploadAvatar", language)}
+                      </p>
+                    </div>
+                  </div>
 
                   <div className="grid sm:grid-cols-2 gap-6">
                     {/* Name */}
@@ -893,7 +1028,8 @@ export function Dashboard() {
                                     const startDate = new Date(`${booking.date}T${booking.time}:00`);
                                     const endDate = new Date(startDate.getTime() + 50 * 60 * 1000);
                                     const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-                                    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${booking.course.level} German Lesson - Deutsch mit Tina`)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(`German lesson with Tina\nLevel: ${booking.course.level}${booking.isTrial ? "\n(Free Trial)" : ""}`)}&ctz=Europe/Vienna${booking.meetLink ? `&location=${encodeURIComponent(booking.meetLink)}` : ""}`;
+                                    const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Vienna";
+                                    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${booking.course.level} German Lesson - Deutsch mit Tina`)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(`German lesson with Tina\nLevel: ${booking.course.level}${booking.isTrial ? "\n(Free Trial)" : ""}`)}&ctz=${encodeURIComponent(userTz)}${booking.meetLink ? `&location=${encodeURIComponent(booking.meetLink)}` : ""}`;
                                     window.open(url, "_blank");
                                   }}
                                 >

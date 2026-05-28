@@ -23,7 +23,7 @@ const translations = {
     // Teacher
     teacherSectionTitle: "Meet Your Teacher",
     teacherName: "Tina",
-    teacherCredentials: "B2 Certificate, 3+ years teaching experience",
+    teacherCredentials: "C1 Certificate, 3+ years teaching experience",
     teacherStudents: "200+ Students",
     teacherLanguages: "German, English",
     teacherRating: "5.0",
@@ -280,6 +280,11 @@ const translations = {
     homeworkDescription: "Description",
     dueDateOptional: "Due Date (optional)",
     feedbackPlaceholder: "Write your feedback...",
+
+    // Upload
+    uploadAvatar: "Change Avatar",
+    uploadFile: "Upload File",
+    uploading: "Uploading...",
   },
   de: {
     // Header
@@ -303,7 +308,7 @@ const translations = {
     // Teacher
     teacherSectionTitle: "Lernen Sie Ihre Lehrerin kennen",
     teacherName: "Tina",
-    teacherCredentials: "B2-Zertifikat, 3+ Jahre Lehrerfahrung",
+    teacherCredentials: "C1-Zertifikat, 3+ Jahre Lehrerfahrung",
     teacherStudents: "200+ Schüler",
     teacherLanguages: "Deutsch, Englisch",
     teacherRating: "5,0",
@@ -560,6 +565,11 @@ const translations = {
     homeworkDescription: "Beschreibung",
     dueDateOptional: "Fälligkeitsdatum (optional)",
     feedbackPlaceholder: "Feedback schreiben...",
+
+    // Upload
+    uploadAvatar: "Avatar ändern",
+    uploadFile: "Datei hochladen",
+    uploading: "Hochladen...",
   },
 } as const;
 

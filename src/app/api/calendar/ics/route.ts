@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { getUserIdFromRequest } from '@/lib/auth'
 import { generateIcsContent } from '@/lib/calendar'
 
-// GET /api/calendar/ics?bookingId=xxx - Download .ics file for a booking
+// GET /api/calendar/ics?bookingId=xxx&timezone=xxx - Download .ics file for a booking
 export async function GET(request: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(request)
@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const bookingId = searchParams.get('bookingId')
+    const timezone = searchParams.get('timezone') || 'Europe/Vienna'
 
     if (!bookingId) {
       return NextResponse.json(
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       include: {
         course: true,
         user: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, timezone: true },
         },
       },
     })
@@ -53,6 +54,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Use the student's timezone if available, otherwise use the query param
+    const userTimezone = booking.user.timezone || timezone
+
     const isTrial = booking.isTrial
     const studentName = booking.user.name
     const courseLevel = booking.course.level
@@ -67,7 +71,7 @@ export async function GET(request: NextRequest) {
       durationMinutes: booking.course.duration,
       location: booking.meetLink || undefined,
       uid: booking.id,
-      timezone: 'Europe/Vienna',
+      timezone: userTimezone,
     })
 
     return new NextResponse(icsContent, {

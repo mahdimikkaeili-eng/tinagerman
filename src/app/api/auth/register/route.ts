@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, phone, nativeLanguage, germanLevel } = body
+    const { name, phone, nativeLanguage, germanLevel, avatar } = body
 
     // Validate at least name is provided
     if (!name) {
@@ -107,15 +107,23 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Build update data
+    const updateData: Record<string, string | null> = {
+      name,
+      phone: phone || null,
+      nativeLanguage: nativeLanguage || null,
+      germanLevel: germanLevel || null,
+    }
+
+    // Only update avatar if provided
+    if (avatar !== undefined) {
+      updateData.avatar = avatar
+    }
+
     // Update user
     const user = await db.user.update({
       where: { id: userId },
-      data: {
-        name,
-        phone: phone || null,
-        nativeLanguage: nativeLanguage || null,
-        germanLevel: germanLevel || null,
-      },
+      data: updateData,
     })
 
     const sanitizedUser = sanitizeUser(user)

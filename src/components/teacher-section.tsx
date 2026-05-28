@@ -13,8 +13,8 @@ import { t } from "@/lib/i18n";
 const credentials = [
   {
     icon: Award,
-    labelEn: "B2 Certificate",
-    labelDe: "B2-Zertifikat",
+    labelEn: "C1 Certificate",
+    labelDe: "C1-Zertifikat",
   },
   {
     icon: Users,

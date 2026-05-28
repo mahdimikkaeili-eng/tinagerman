@@ -34,7 +34,7 @@ export function Footer() {
                 <div className="flex-1 bg-red-400" />
                 <div className="flex-1 bg-amber-400" />
               </div>
-              <span className="text-lg font-bold text-white">Deutsch mit Tina</span>
+              <a href="/" className="text-lg font-bold text-white hover:text-emerald-400 transition-colors">Deutsch mit Tina</a>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
               {language === "en"

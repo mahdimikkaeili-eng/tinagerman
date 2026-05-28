@@ -26,18 +26,18 @@ export async function POST(request: Request) {
           role: 'teacher',
           bio: "Hi! I'm Tina, a certified German teacher from Vienna, Austria. I've been teaching German for over 8 years and love helping students discover the beauty of the German language. Whether you're a complete beginner or preparing for a Goethe exam, I'm here to guide you!",
           nativeLanguage: 'de',
-          germanLevel: 'C2',
+          germanLevel: 'C1',
           timezone: 'Europe/Vienna',
         },
       })
       tina = { id: created.id, name: created.name, email: created.email }
     } else {
-      // Tina already exists — just reset her password if force=true
+      // Tina already exists — just reset her password and update level if force=true
       if (force) {
         const tinaPassword = hashPassword('Tina2024!')
         await db.user.update({
           where: { id: existingTina.id },
-          data: { password: tinaPassword },
+          data: { password: tinaPassword, germanLevel: 'C1' },
         })
       }
       tina = { id: existingTina.id, name: existingTina.name, email: existingTina.email }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Calendar, Clock, BookOpen, Loader2, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
+import { convertViennaTimeToLocal, getUserTimezone } from "@/lib/timezone";
 
 interface Course {
   id: string;
@@ -34,9 +35,11 @@ interface BookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isTrial?: boolean;
+  timezone?: string;
 }
 
-const timeSlots = [
+// Vienna time slots (teacher's availability)
+const viennaTimeSlots = [
   "09:00",
   "09:50",
   "10:40",
@@ -49,13 +52,25 @@ const timeSlots = [
   "17:10",
 ];
 
-export function BookingModal({ open, onOpenChange, isTrial = false }: BookingModalProps) {
+export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: BookingModalProps) {
   const { language, user } = useAppStore();
+
+  // Detect user's timezone
+  const userTimezone = useMemo(() => timezone || getUserTimezone(), [timezone]);
+  const isViennaTime = userTimezone === "Europe/Vienna";
+
+  // Convert Vienna time slots to user's local timezone for display
+  const displayTimeSlots = useMemo(() => {
+    return viennaTimeSlots.map((viennaTime) => {
+      const localTime = convertViennaTimeToLocal(viennaTime, userTimezone);
+      return { viennaTime, localTime };
+    });
+  }, [userTimezone]);
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedTime, setSelectedTime] = useState(""); // Always stores Vienna time
   const [isTrialBooking, setIsTrialBooking] = useState(isTrial);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -109,7 +124,7 @@ export function BookingModal({ open, onOpenChange, isTrial = false }: BookingMod
           userId: user.id,
           courseId: selectedCourse,
           date: selectedDate,
-          time: selectedTime,
+          time: selectedTime, // Vienna time
           isTrial: isTrialBooking,
         }),
       });
@@ -128,6 +143,24 @@ export function BookingModal({ open, onOpenChange, isTrial = false }: BookingMod
       setLoading(false);
     }
   };
+
+  // Format timezone label for display
+  const timezoneLabel = useMemo(() => {
+    if (isViennaTime) {
+      return language === "de" ? "Wiener Zeit" : "Vienna Time";
+    }
+    try {
+      const now = new Date();
+      const formatted = now.toLocaleTimeString(language === "de" ? "de-DE" : "en-US", {
+        timeZone: userTimezone,
+        timeZoneName: "short",
+      });
+      const tzName = formatted.split(" ").pop() || userTimezone;
+      return `${tzName} (${userTimezone.split("/").pop()?.replace(/_/g, " ")})`;
+    } catch {
+      return userTimezone;
+    }
+  }, [userTimezone, isViennaTime, language]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -217,22 +250,28 @@ export function BookingModal({ open, onOpenChange, isTrial = false }: BookingMod
 
               {/* Time slot selector */}
               <div className="space-y-2">
-                <Label>{t("selectTime", language)}</Label>
+                <div className="flex items-center justify-between">
+                  <Label>{t("selectTime", language)}</Label>
+                  <span className="text-[11px] text-slate-400">
+                    {language === "en" ? "Times shown in" : "Zeiten angezeigt in"} {timezoneLabel}
+                  </span>
+                </div>
                 <div className="grid grid-cols-5 gap-2">
-                  {timeSlots.map((slot) => (
+                  {displayTimeSlots.map(({ viennaTime, localTime }) => (
                     <button
-                      key={slot}
+                      key={viennaTime}
                       type="button"
                       disabled={loading}
                       className={`flex items-center justify-center gap-1 rounded-lg border px-2 py-2 text-sm transition-all ${
-                        selectedTime === slot
+                        selectedTime === viennaTime
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-medium"
                           : "border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/50"
                       }`}
-                      onClick={() => setSelectedTime(slot)}
+                      onClick={() => setSelectedTime(viennaTime)}
+                      title={isViennaTime ? undefined : `${language === "en" ? "Vienna time" : "Wiener Zeit"}: ${viennaTime}`}
                     >
                       <Clock className="size-3" />
-                      {slot}
+                      {localTime}
                     </button>
                   ))}
                 </div>
