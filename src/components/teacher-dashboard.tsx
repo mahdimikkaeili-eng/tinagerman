@@ -1382,15 +1382,42 @@ export function TeacherDashboard() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>{t("attachFile", language)}</Label>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                              disabled={homeworkUploading}
+                          <Label className="text-sm font-semibold text-slate-700">{t("uploadHomeworkImage", language)}</Label>
+                          {newHomework.attachment ? (
+                            <div className="relative border-2 border-emerald-300 rounded-xl p-3 bg-emerald-50/50">
+                              <div className="flex items-start gap-3">
+                                {newHomework.attachment.includes('.pdf') ? (
+                                  <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-slate-200 flex-1">
+                                    <Paperclip className="size-5 text-red-500" />
+                                    <span className="text-sm text-slate-700 font-medium">PDF Document</span>
+                                    <a href={newHomework.attachment} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline ml-auto">{t("viewFile", language)}</a>
+                                  </div>
+                                ) : (
+                                  <div className="flex-1">
+                                    <img src={newHomework.attachment} alt="Preview" className="max-h-48 rounded-lg border border-emerald-200 object-contain bg-white" />
+                                  </div>
+                                )}
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="destructive"
+                                  className="shrink-0"
+                                  onClick={() => setNewHomework((prev) => ({ ...prev, attachment: "" }))}
+                                >
+                                  <XCircle className="size-4 mr-1" />
+                                  {t("removeAttachment", language)}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+                                homeworkUploading
+                                  ? "border-emerald-400 bg-emerald-50"
+                                  : "border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30"
+                              }`}
                               onClick={() => {
+                                if (homeworkUploading) return;
                                 const input = document.createElement('input');
                                 input.type = 'file';
                                 input.accept = 'image/*,.pdf';
@@ -1411,21 +1438,45 @@ export function TeacherDashboard() {
                                 };
                                 input.click();
                               }}
+                              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add('border-emerald-400', 'bg-emerald-50'); }}
+                              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50'); }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50');
+                                if (homeworkUploading) return;
+                                const file = e.dataTransfer.files?.[0];
+                                if (!file) return;
+                                if (!file.type.startsWith('image/') && file.type !== 'application/pdf') return;
+                                setHomeworkUploading(true);
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' })
+                                  .then((res) => res.ok ? res.json() : null)
+                                  .then((data) => {
+                                    if (data?.url) setNewHomework((prev) => ({ ...prev, attachment: data.url }));
+                                  })
+                                  .catch(() => {})
+                                  .finally(() => setHomeworkUploading(false));
+                              }}
                             >
-                              {homeworkUploading ? <Loader2 className="size-4 animate-spin mr-1" /> : <Paperclip className="size-4 mr-1" />}
-                              {homeworkUploading ? t("uploading", language) : t("attachFile", language)}
-                            </Button>
-                            {newHomework.attachment && (
-                              <div className="flex items-center gap-1 text-xs text-emerald-600">
-                                <ImageIcon className="size-3" />
-                                <span>{t("attachment", language)}</span>
-                                <button
-                                  className="text-red-400 hover:text-red-600 ml-1"
-                                  onClick={() => setNewHomework((prev) => ({ ...prev, attachment: "" }))}
-                                >✕</button>
-                              </div>
-                            )}
-                          </div>
+                              {homeworkUploading ? (
+                                <div className="flex flex-col items-center gap-2 py-4">
+                                  <Loader2 className="size-10 animate-spin text-emerald-600" />
+                                  <p className="text-sm font-medium text-emerald-700">{t("uploading", language)}</p>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2 py-2">
+                                  <div className="size-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <ImageIcon className="size-6 text-emerald-600" />
+                                  </div>
+                                  <p className="text-sm font-semibold text-slate-700">{t("dropImageHere", language)}</p>
+                                  <p className="text-xs text-emerald-600 hover:text-emerald-700 underline">{t("orClickToUpload", language)}</p>
+                                  <p className="text-xs text-slate-400">{t("supportedFormats", language)}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Button

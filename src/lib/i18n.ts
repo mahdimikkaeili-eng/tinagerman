@@ -291,6 +291,11 @@ const translations = {
     noAttachment: "No file attached",
     viewFile: "View File",
     downloadFile: "Download",
+    dropImageHere: "Drop image or file here",
+    orClickToUpload: "or click to upload",
+    supportedFormats: "Images (JPG, PNG, GIF, WebP) and PDF files",
+    removeAttachment: "Remove",
+    uploadHomeworkImage: "Upload Homework Image",
   },
   de: {
     // Header
@@ -582,6 +587,11 @@ const translations = {
     noAttachment: "Keine Datei angehängt",
     viewFile: "Datei ansehen",
     downloadFile: "Herunterladen",
+    dropImageHere: "Bild oder Datei hier ablegen",
+    orClickToUpload: "oder klicken zum Hochladen",
+    supportedFormats: "Bilder (JPG, PNG, GIF, WebP) und PDF-Dateien",
+    removeAttachment: "Entfernen",
+    uploadHomeworkImage: "Hausaufgaben-Bild hochladen",
   },
 } as const;
 

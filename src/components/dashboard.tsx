@@ -1346,15 +1346,17 @@ export function Dashboard() {
                                 </div>
                               )}
 
-                              {/* Submit button for assigned homework */}
+                              {/* Submit homework section for assigned homework */}
                               {hw.status === "assigned" && (
-                                <div className="mt-3 space-y-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                                    disabled={studentAttachmentUploading === hw.id}
+                                <div className="mt-4 space-y-3">
+                                  <div
+                                    className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-all cursor-pointer ${
+                                      studentAttachmentUploading === hw.id
+                                        ? "border-emerald-400 bg-emerald-50"
+                                        : "border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30"
+                                    }`}
                                     onClick={() => {
+                                      if (studentAttachmentUploading === hw.id) return;
                                       const input = document.createElement('input');
                                       input.type = 'file';
                                       input.accept = 'image/*,.pdf';
@@ -1388,44 +1390,94 @@ export function Dashboard() {
                                       };
                                       input.click();
                                     }}
-                                  >
-                                    {studentAttachmentUploading === hw.id ? <Loader2 className="size-4 animate-spin mr-1" /> : <Paperclip className="size-4 mr-1" />}
-                                    {studentAttachmentUploading === hw.id ? t("uploading", language) : t("attachFile") + " & " + t("submitHomework", language)}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    disabled={submittingHomeworkId === hw.id}
-                                    onClick={async () => {
-                                      setSubmittingHomeworkId(hw.id);
-                                      try {
-                                        const res = await fetch(`/api/homework/${hw.id}`, {
-                                          method: "PATCH",
-                                          headers: { "Content-Type": "application/json" },
-                                          credentials: "include",
-                                          body: JSON.stringify({ status: "submitted" }),
-                                        });
-                                        if (res.ok && user) {
-                                          const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
-                                          if (homeworkRes.ok) {
-                                            const data = await homeworkRes.json();
-                                            setHomework(data.homeworks || data.homework || []);
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add('border-emerald-400', 'bg-emerald-50'); }}
+                                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50'); }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50');
+                                      if (studentAttachmentUploading === hw.id) return;
+                                      const file = e.dataTransfer.files?.[0];
+                                      if (!file) return;
+                                      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') return;
+                                      setStudentAttachmentUploading(hw.id);
+                                      const formData = new FormData();
+                                      formData.append('file', file);
+                                      fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' })
+                                        .then((res) => res.ok ? res.json() : null)
+                                        .then(async (data) => {
+                                          if (data?.url) {
+                                            const res = await fetch(`/api/homework/${hw.id}`, {
+                                              method: "PATCH",
+                                              headers: { "Content-Type": "application/json" },
+                                              credentials: "include",
+                                              body: JSON.stringify({ status: "submitted", studentAttachment: data.url }),
+                                            });
+                                            if (res.ok && user) {
+                                              const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
+                                              if (homeworkRes.ok) {
+                                                const hwData = await homeworkRes.json();
+                                                setHomework(hwData.homeworks || hwData.homework || []);
+                                              }
+                                            }
                                           }
-                                        }
-                                      } catch {
-                                        // silently fail
-                                      } finally {
-                                        setSubmittingHomeworkId(null);
-                                      }
+                                        })
+                                        .catch(() => {})
+                                        .finally(() => setStudentAttachmentUploading(null));
                                     }}
                                   >
-                                    {submittingHomeworkId === hw.id ? (
-                                      <Loader2 className="size-4 animate-spin mr-1" />
+                                    {studentAttachmentUploading === hw.id ? (
+                                      <div className="flex flex-col items-center gap-2 py-3">
+                                        <Loader2 className="size-8 animate-spin text-emerald-600" />
+                                        <p className="text-sm font-medium text-emerald-700">{t("uploading", language)}</p>
+                                      </div>
                                     ) : (
-                                      <CheckCircle2 className="size-4 mr-1" />
+                                      <div className="flex flex-col items-center gap-2 py-1">
+                                        <div className="size-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                                          <ImageIcon className="size-5 text-emerald-600" />
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-700">{t("dropImageHere", language)}</p>
+                                        <p className="text-xs text-emerald-600 hover:text-emerald-700 underline">{t("orClickToUpload", language)}</p>
+                                        <p className="text-[11px] text-slate-400">{t("supportedFormats", language)}</p>
+                                      </div>
                                     )}
-                                    {t("submitHomework", language)}
-                                  </Button>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
+                                      disabled={submittingHomeworkId === hw.id}
+                                      onClick={async () => {
+                                        setSubmittingHomeworkId(hw.id);
+                                        try {
+                                          const res = await fetch(`/api/homework/${hw.id}`, {
+                                            method: "PATCH",
+                                            headers: { "Content-Type": "application/json" },
+                                            credentials: "include",
+                                            body: JSON.stringify({ status: "submitted" }),
+                                          });
+                                          if (res.ok && user) {
+                                            const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
+                                            if (homeworkRes.ok) {
+                                              const data = await homeworkRes.json();
+                                              setHomework(data.homeworks || data.homework || []);
+                                            }
+                                          }
+                                        } catch {
+                                          // silently fail
+                                        } finally {
+                                          setSubmittingHomeworkId(null);
+                                        }
+                                      }}
+                                    >
+                                      {submittingHomeworkId === hw.id ? (
+                                        <Loader2 className="size-4 animate-spin mr-1" />
+                                      ) : (
+                                        <CheckCircle2 className="size-4 mr-1" />
+                                      )}
+                                      {t("submitHomework", language)}
+                                    </Button>
+                                  </div>
                                 </div>
                               )}
                             </div>
