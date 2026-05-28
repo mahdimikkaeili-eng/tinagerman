@@ -296,6 +296,10 @@ const translations = {
     supportedFormats: "Images (JPG, PNG, GIF, WebP) and PDF files",
     removeAttachment: "Remove",
     uploadHomeworkImage: "Upload Homework Image",
+
+    // Welcome messages
+    welcomeStudentMsg: "You're officially learning German now!",
+    welcomeTeacherMsg: "Ready to shape some German minds today?",
   },
   de: {
     // Header
@@ -592,6 +596,10 @@ const translations = {
     supportedFormats: "Bilder (JPG, PNG, GIF, WebP) und PDF-Dateien",
     removeAttachment: "Entfernen",
     uploadHomeworkImage: "Hausaufgaben-Bild hochladen",
+
+    // Welcome messages
+    welcomeStudentMsg: "Willkommen in der Welt des Deutschlernens!",
+    welcomeTeacherMsg: "Bereit, deutsche Geister zu formen?",
   },
 } as const;
 

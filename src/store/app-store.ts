@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export type Language = "en" | "de";
 export type CurrentView = "landing" | "dashboard" | "courses" | "chat" | "profile";
+export type ViewMode = "landing" | "dashboard";
 export type AuthMode = "login" | "signup";
 
 interface User {
@@ -49,6 +50,10 @@ interface AppState {
   activeDashboardTab: string;
   setActiveDashboardTab: (tab: string) => void;
 
+  // View mode for logged-in users (landing vs dashboard)
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+
   // Pending action after auth (e.g. redirect to WhatsApp)
   pendingAction: string | null; // "whatsapp-trial" | "whatsapp-lesson" | null
   setPendingAction: (action: string | null) => void;
@@ -70,13 +75,14 @@ export const useAppStore = create<AppState>((set) => ({
   authMode: "login",
   setShowAuthModal: (showAuthModal) => set({ showAuthModal }),
   setAuthMode: (authMode) => set({ authMode }),
-  login: (user) => set({ isAuthenticated: true, user, showAuthModal: false }),
+  login: (user) => set({ isAuthenticated: true, user, showAuthModal: false, viewMode: "dashboard" }),
   logout: () =>
     set({
       isAuthenticated: false,
       user: null,
       currentView: "landing",
       activeDashboardTab: "profile",
+      viewMode: "dashboard",
     }),
 
   // Teacher
@@ -92,6 +98,10 @@ export const useAppStore = create<AppState>((set) => ({
   // Dashboard tab
   activeDashboardTab: "profile",
   setActiveDashboardTab: (activeDashboardTab) => set({ activeDashboardTab }),
+
+  // View mode for logged-in users
+  viewMode: "dashboard",
+  setViewMode: (viewMode) => set({ viewMode }),
 
   // Pending action after auth
   pendingAction: null,

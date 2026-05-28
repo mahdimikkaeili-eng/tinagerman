@@ -191,7 +191,7 @@ export function HeroSection() {
                   {/* Mini stats */}
                   <div className="grid grid-cols-3 gap-2 mt-5">
                     <div className="bg-emerald-50 rounded-xl p-2.5">
-                      <div className="text-lg font-bold text-emerald-600">B2</div>
+                      <div className="text-lg font-bold text-emerald-600">C1</div>
                       <div className="text-[10px] text-slate-400">
                         {language === "en" ? "Level" : "Niveau"}
                       </div>

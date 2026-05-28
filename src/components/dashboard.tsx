@@ -513,9 +513,9 @@ export function Dashboard() {
                   <div className="flex-1 bg-red-500" />
                   <div className="flex-1 bg-amber-500" />
                 </div>
-                <a href="/" className="text-lg font-bold text-slate-900 hover:text-emerald-600 transition-colors">
+                <button onClick={() => useAppStore.getState().setViewMode('landing')} className="text-lg font-bold text-slate-900 hover:text-emerald-600 transition-colors">
                   Deutsch mit Tina
-                </a>
+                </button>
               </div>
               <Separator orientation="vertical" className="h-6 hidden sm:block" />
               <span className="text-sm font-medium text-slate-500 hidden sm:block">
@@ -540,22 +540,22 @@ export function Dashboard() {
                   <DropdownMenuLabel className="text-xs text-slate-400">{language === "en" ? "Site Navigation" : "Seitennavigation"}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <a href="/#home" className="flex items-center gap-2 cursor-pointer"><Home className="size-4" />{t("navHome", language)}</a>
+                    <button onClick={() => useAppStore.getState().setViewMode('landing')} className="flex items-center gap-2 cursor-pointer w-full"><Home className="size-4" />{t("navHome", language)}</button>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="/#courses" className="flex items-center gap-2 cursor-pointer"><GraduationCap className="size-4" />{t("navCourses", language)}</a>
+                    <button onClick={() => useAppStore.getState().setViewMode('landing')} className="flex items-center gap-2 cursor-pointer w-full"><GraduationCap className="size-4" />{t("navCourses", language)}</button>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="/#pricing" className="flex items-center gap-2 cursor-pointer"><DollarSign className="size-4" />{t("navPricing", language)}</a>
+                    <button onClick={() => useAppStore.getState().setViewMode('landing')} className="flex items-center gap-2 cursor-pointer w-full"><DollarSign className="size-4" />{t("navPricing", language)}</button>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="/#placement-test" className="flex items-center gap-2 cursor-pointer"><ClipboardList className="size-4" />{t("navPlacement", language)}</a>
+                    <button onClick={() => useAppStore.getState().setViewMode('landing')} className="flex items-center gap-2 cursor-pointer w-full"><ClipboardList className="size-4" />{t("navPlacement", language)}</button>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="/#about" className="flex items-center gap-2 cursor-pointer"><Info className="size-4" />{t("navAbout", language)}</a>
+                    <button onClick={() => useAppStore.getState().setViewMode('landing')} className="flex items-center gap-2 cursor-pointer w-full"><Info className="size-4" />{t("navAbout", language)}</button>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="/#contact" className="flex items-center gap-2 cursor-pointer"><Mail className="size-4" />{t("navContact", language)}</a>
+                    <button onClick={() => useAppStore.getState().setViewMode('landing')} className="flex items-center gap-2 cursor-pointer w-full"><Mail className="size-4" />{t("navContact", language)}</button>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -603,6 +603,19 @@ export function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* Welcome banner */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="bg-gradient-to-r from-emerald-50 to-amber-50 border border-emerald-200 rounded-xl px-5 py-3 flex items-center gap-3">
+          <span className="text-2xl">🇩🇪</span>
+          <div>
+            <p className="text-sm font-semibold text-slate-800">
+              {language === "en" ? `Hey ${user?.name?.split(" ")[0] || ""}` : `Hallo ${user?.name?.split(" ")[0] || ""}`}!
+            </p>
+            <p className="text-xs text-slate-600">{t("welcomeStudentMsg", language)}</p>
+          </div>
+        </div>
+      </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
