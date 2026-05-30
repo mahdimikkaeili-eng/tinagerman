@@ -12,6 +12,9 @@ const translations = {
     navPricing: "Pricing",
     login: "Log In",
     signup: "Sign Up",
+    navDashboard: "Dashboard",
+    navLogout: "Log Out",
+    welcomeBack: "Welcome back",
 
     // Hero
     heroTitle: "Learn German with Tina",
@@ -263,6 +266,7 @@ const translations = {
     lessonRedirectMessage: "You'll be redirected to WhatsApp to book your German lesson.",
 
     // Telegram Integration
+    bookingTelegramNotice: "You'll receive a Telegram notification if connected",
     telegramConnect: "Connect Telegram",
     telegramConnectDesc: "Get class reminders on Telegram",
     telegramBotStart: "Start our Telegram bot to receive class reminders",
@@ -300,6 +304,36 @@ const translations = {
     // Welcome messages
     welcomeStudentMsg: "You're officially learning German now!",
     welcomeTeacherMsg: "Ready to shape some German minds today?",
+
+    // Meet Link Settings
+    defaultMeetLink: "Default Google Meet Link",
+    defaultMeetLinkDesc: "This link will be used for all your classes. Students will see it when they book a lesson.",
+    meetLinkSaved: "Meet link saved!",
+
+    // Chat Attachments
+    chatAttachFile: "Attach file",
+    chatSendImage: "Send image",
+    chatVoiceMessage: "Voice message",
+
+    // Reschedule/Cancel
+    rescheduleBooking: "Reschedule",
+    cancelBooking: "Cancel Booking",
+    cancelConfirm: "Are you sure you want to cancel this booking?",
+    rescheduleTitle: "Reschedule Lesson",
+    selectNewDate: "Select new date",
+    selectNewTime: "Select new time",
+    bookingCancelled: "Booking cancelled",
+    bookingRescheduled: "Booking rescheduled",
+
+    // Teaching Schedule
+    teachingSchedule: "Teaching Schedule",
+    teachingScheduleDesc: "Set your available days and time slots",
+    scheduleSaved: "Schedule saved!",
+    dayEnabled: "Open",
+    dayDisabled: "Closed",
+    addSlot: "Add slot",
+    removeSlot: "Remove",
+    noSlotsThisDay: "No availability on this day",
   },
   de: {
     // Header
@@ -312,6 +346,9 @@ const translations = {
     navPricing: "Preise",
     login: "Anmelden",
     signup: "Registrieren",
+    navDashboard: "Dashboard",
+    navLogout: "Abmelden",
+    welcomeBack: "Willkommen zurück",
 
     // Hero
     heroTitle: "Lerne Deutsch mit Tina",
@@ -562,6 +599,7 @@ const translations = {
     lessonRedirectTitle: "Registrierung erfolgreich!",
 
     // Telegram Integration
+    bookingTelegramNotice: "Sie erhalten eine Telegram-Benachrichtigung, falls verbunden",
     telegramConnect: "Mit Telegram verbinden",
     telegramConnectDesc: "Erhalten Sie Unterrichtserinnerungen auf Telegram",
     telegramBotStart: "Starten Sie unseren Telegram-Bot, um Unterrichtserinnerungen zu erhalten",
@@ -600,6 +638,36 @@ const translations = {
     // Welcome messages
     welcomeStudentMsg: "Willkommen in der Welt des Deutschlernens!",
     welcomeTeacherMsg: "Bereit, deutsche Geister zu formen?",
+
+    // Meet Link Settings
+    defaultMeetLink: "Standard Google Meet Link",
+    defaultMeetLinkDesc: "Dieser Link wird für alle Unterrichtsstunden verwendet. Schüler sehen ihn bei der Buchung.",
+    meetLinkSaved: "Meet-Link gespeichert!",
+
+    // Chat Attachments
+    chatAttachFile: "Datei anhängen",
+    chatSendImage: "Bild senden",
+    chatVoiceMessage: "Sprachnachricht",
+
+    // Reschedule/Cancel
+    rescheduleBooking: "Verschieben",
+    cancelBooking: "Buchung stornieren",
+    cancelConfirm: "Möchten Sie diese Buchung wirklich stornieren?",
+    rescheduleTitle: "Unterricht verschieben",
+    selectNewDate: "Neues Datum wählen",
+    selectNewTime: "Neue Uhrzeit wählen",
+    bookingCancelled: "Buchung storniert",
+    bookingRescheduled: "Buchung verschoben",
+
+    // Teaching Schedule
+    teachingSchedule: "Unterrichtszeitplan",
+    teachingScheduleDesc: "Legen Sie Ihre verfügbaren Tage und Zeitfenster fest",
+    scheduleSaved: "Zeitplan gespeichert!",
+    dayEnabled: "Geöffnet",
+    dayDisabled: "Geschlossen",
+    addSlot: "Zeitfenster hinzufügen",
+    removeSlot: "Entfernen",
+    noSlotsThisDay: "Keine Verfügbarkeit an diesem Tag",
   },
 } as const;
 

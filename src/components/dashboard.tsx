@@ -29,6 +29,8 @@ import {
   Paperclip,
   Download,
   Image as ImageIcon,
+  X,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +60,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface Booking {
   id: string;
@@ -86,6 +97,9 @@ interface ChatMessage {
   senderId: string;
   receiverId: string;
   content: string;
+  attachment?: string;
+  attachmentType?: string;
+  attachmentName?: string;
   createdAt: string;
   isRead: boolean;
 }
@@ -105,6 +119,7 @@ const nativeLanguages = [
   { value: "pt", label: "Português" },
   { value: "it", label: "Italiano" },
   { value: "uk", label: "Українська (Ukrainian)" },
+  { value: "hu", label: "Magyar (Hungarian)" },
   { value: "other", label: "Other" },
 ];
 
@@ -124,6 +139,16 @@ const statusColors: Record<string, string> = {
   submitted: "bg-amber-100 text-amber-700 border-amber-200",
   reviewed: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
+
+// Helper to convert /uploads/xxx to /api/uploads?file=xxx for reliable file serving
+function getFileUrl(attachmentUrl: string): string {
+  if (!attachmentUrl) return attachmentUrl;
+  const filename = attachmentUrl.replace("/uploads/", "");
+  if (filename && !attachmentUrl.startsWith("/api/")) {
+    return `/api/uploads?file=${encodeURIComponent(filename)}`;
+  }
+  return attachmentUrl;
+}
 
 export function Dashboard() {
   const {
@@ -170,8 +195,21 @@ export function Dashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const [socket, setSocket] = useState<ReturnType<typeof import("socket.io-client").io> | null>(null);
   const [tinaId, setTinaId] = useState<string | null>(null);
+  const [chatAttachmentUploading, setChatAttachmentUploading] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    file: File;
+    previewUrl: string;
+    type: string; // 'image' | 'voice' | 'file'
+  } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reschedule dialog state
+  const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   // Load data on mount and tab change
   useEffect(() => {
@@ -264,8 +302,16 @@ export function Dashboard() {
 
       socketInstance.on("newMessage", (message: ChatMessage) => {
         setChatMessages((prev) => {
-          // Avoid duplicates
+          // Avoid duplicates - check by ID or by matching content+sender+time
           if (prev.some((m) => m.id === message.id)) return prev;
+          // Also check for optimistic messages we already added locally
+          const isDuplicate = prev.some((m) =>
+            m.id.startsWith("temp_") &&
+            m.senderId === message.senderId &&
+            m.content === message.content &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 10000
+          );
+          if (isDuplicate) return prev;
           return [...prev, message];
         });
 
@@ -309,31 +355,145 @@ export function Dashboard() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  // Send message
-  const handleSendMessage = useCallback(() => {
-    if (!chatInput.trim() || !socket || !tinaId || !user) return;
+  // Send message (with optional pending attachment)
+  const handleSendMessage = useCallback(async () => {
+    if ((!chatInput.trim() && !pendingAttachment) || !socket || !tinaId || !user) return;
 
-    const messageData = {
-      receiverId: tinaId,
-      content: chatInput.trim(),
-    };
+    // If there's a pending attachment, upload it first
+    if (pendingAttachment) {
+      setChatAttachmentUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", pendingAttachment.file);
 
-    // Send via socket
-    socket.emit("sendMessage", messageData);
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
 
-    // Also persist via API
-    fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+        if (!uploadRes.ok) {
+          throw new Error("Upload failed");
+        }
+
+        const { url } = await uploadRes.json();
+
+        // Add message to UI immediately (optimistic)
+        const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const optimisticMsg: ChatMessage = {
+          id: tempId,
+          senderId: user.id,
+          receiverId: tinaId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType: pendingAttachment.type,
+          attachmentName: pendingAttachment.file.name,
+          createdAt: new Date().toISOString(),
+          isRead: false,
+        };
+        setChatMessages((prev) => [...prev, optimisticMsg]);
+
+        const messageData = {
+          receiverId: tinaId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType: pendingAttachment.type,
+          attachmentName: pendingAttachment.file.name,
+        };
+
+        // Send via socket
+        socket.emit("sendMessage", messageData);
+
+        // Persist via API
+        fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            senderId: user.id,
+            receiverId: tinaId,
+            content: chatInput.trim() || "",
+            attachment: url,
+            attachmentType: pendingAttachment.type,
+            attachmentName: pendingAttachment.file.name,
+          }),
+        }).catch(console.error);
+
+        setPendingAttachment(null);
+        setChatInput("");
+      } catch {
+        // silently fail
+      } finally {
+        setChatAttachmentUploading(false);
+        if (chatFileInputRef.current) {
+          chatFileInputRef.current.value = "";
+        }
+      }
+    } else {
+      // Text-only message - add to UI immediately (optimistic)
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const optimisticMsg: ChatMessage = {
+        id: tempId,
         senderId: user.id,
         receiverId: tinaId,
         content: chatInput.trim(),
-      }),
-    }).catch(console.error);
+        createdAt: new Date().toISOString(),
+        isRead: false,
+      };
+      setChatMessages((prev) => [...prev, optimisticMsg]);
 
-    setChatInput("");
-  }, [chatInput, socket, tinaId, user]);
+      const messageData = {
+        receiverId: tinaId,
+        content: chatInput.trim(),
+      };
+
+      // Send via socket
+      socket.emit("sendMessage", messageData);
+
+      // Also persist via API
+      fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId: user.id,
+          receiverId: tinaId,
+          content: chatInput.trim(),
+        }),
+      }).catch(console.error);
+
+      setChatInput("");
+    }
+  }, [chatInput, socket, tinaId, user, pendingAttachment]);
+
+  // Handle chat file selection (show preview, don't upload yet)
+  const handleChatFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Determine attachment type
+    let attachmentType = "file";
+    if (file.type.startsWith("image/")) {
+      attachmentType = "image";
+    } else if (file.type.startsWith("audio/")) {
+      attachmentType = "voice";
+    }
+
+    // Create preview URL for images
+    let previewUrl = "";
+    if (attachmentType === "image") {
+      previewUrl = URL.createObjectURL(file);
+    }
+
+    setPendingAttachment({
+      file,
+      previewUrl,
+      type: attachmentType,
+    });
+
+    // Reset file input so the same file can be selected again
+    if (chatFileInputRef.current) {
+      chatFileInputRef.current.value = "";
+    }
+  };
 
   // Typing indicator
   const handleChatInput = (value: string) => {
@@ -392,6 +552,70 @@ export function Dashboard() {
       // continue anyway
     }
     logout();
+  };
+
+  // Handle cancel booking
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm(t("cancelConfirm", language))) return;
+
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+
+      if (res.ok) {
+        toast.success(t("bookingCancelled", language));
+        // Refresh bookings
+        setBookings((prev) =>
+          prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
+        );
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  // Handle open reschedule dialog
+  const handleOpenReschedule = (booking: Booking) => {
+    setRescheduleBookingId(booking.id);
+    setRescheduleDate(booking.date);
+    setRescheduleTime(booking.time);
+    setRescheduleLoading(false);
+  };
+
+  // Handle confirm reschedule
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleBookingId || !rescheduleDate || !rescheduleTime) return;
+
+    setRescheduleLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/${rescheduleBookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ date: rescheduleDate, time: rescheduleTime }),
+      });
+
+      if (res.ok) {
+        toast.success(t("bookingRescheduled", language));
+        // Refresh bookings
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === rescheduleBookingId
+              ? { ...b, date: rescheduleDate, time: rescheduleTime, status: "pending" }
+              : b
+          )
+        );
+        setRescheduleBookingId(null);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setRescheduleLoading(false);
+    }
   };
 
   // Avatar upload handler
@@ -1056,6 +1280,27 @@ export function Dashboard() {
                                   {t("addToCalendar", language)}
                                 </Button>
                               )}
+                              {(booking.status === "confirmed" || booking.status === "pending") && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                    onClick={() => handleOpenReschedule(booking)}
+                                  >
+                                    <Clock className="size-3 mr-1" />
+                                    {t("rescheduleBooking", language)}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                  >
+                                    {t("cancelBooking", language)}
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1170,9 +1415,47 @@ export function Dashboard() {
                                     : "bg-slate-100 text-slate-800 rounded-bl-md"
                                 }`}
                               >
-                                <p className="text-sm whitespace-pre-wrap break-words">
-                                  {msg.content}
-                                </p>
+                                {/* Attachment rendering */}
+                                {msg.attachment && msg.attachmentType === "image" && (
+                                  <div className="mb-2">
+                                    <img
+                                      src={getFileUrl(msg.attachment)}
+                                      alt={msg.attachmentName || "Image"}
+                                      className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer"
+                                      onClick={() => window.open(getFileUrl(msg.attachment), "_blank")}
+                                    />
+                                  </div>
+                                )}
+                                {msg.attachment && msg.attachmentType === "voice" && (
+                                  <div className="mb-2">
+                                    <audio controls className="max-w-full h-8">
+                                      <source src={getFileUrl(msg.attachment)} />
+                                    </audio>
+                                    {msg.attachmentName && (
+                                      <p className={`text-[10px] mt-1 ${isOwn ? "text-emerald-200" : "text-slate-400"}`}>
+                                        {msg.attachmentName}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                {msg.attachment && msg.attachmentType === "file" && (
+                                  <div className="mb-2 flex items-center gap-2">
+                                    <FileText className="size-4 shrink-0" />
+                                    <a
+                                      href={getFileUrl(msg.attachment)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`text-sm underline break-all ${isOwn ? "text-emerald-100 hover:text-white" : "text-emerald-600 hover:text-emerald-800"}`}
+                                    >
+                                      {msg.attachmentName || t("downloadFile", language)}
+                                    </a>
+                                  </div>
+                                )}
+                                {msg.content && (
+                                  <p className="text-sm whitespace-pre-wrap break-words">
+                                    {msg.content}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-1 mt-1">
                                   <p
                                     className={`text-[10px] ${
@@ -1226,28 +1509,93 @@ export function Dashboard() {
                 </CardContent>
 
                 {/* Chat input */}
-                <div className="p-3 border-t bg-white">
+                <div className="border-t bg-white">
+                  {/* Pending attachment preview */}
+                  {pendingAttachment && (
+                    <div className="px-3 pt-3 pb-1">
+                      <div className="relative inline-flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 max-w-[280px]">
+                        {pendingAttachment.type === "image" && pendingAttachment.previewUrl ? (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={pendingAttachment.previewUrl}
+                              alt="Preview"
+                              className="size-12 rounded-lg object-cover"
+                            />
+                            <span className="text-xs text-slate-600 truncate max-w-[140px]">{pendingAttachment.file.name}</span>
+                          </div>
+                        ) : pendingAttachment.type === "voice" ? (
+                          <div className="flex items-center gap-2">
+                            <Mic className="size-5 text-emerald-600 shrink-0" />
+                            <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <FileText className="size-5 text-amber-600 shrink-0" />
+                            <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPendingAttachment(null);
+                            if (pendingAttachment.previewUrl) {
+                              URL.revokeObjectURL(pendingAttachment.previewUrl);
+                            }
+                          }}
+                          className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-slate-400 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
                       handleSendMessage();
                     }}
-                    className="flex gap-2"
+                    className="flex gap-2 items-center p-3"
                   >
+                    <input
+                      ref={chatFileInputRef}
+                      type="file"
+                      accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={handleChatFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 shrink-0"
+                      disabled={chatLoading || chatAttachmentUploading}
+                      onClick={() => chatFileInputRef.current?.click()}
+                      title={t("chatAttachFile", language)}
+                    >
+                      {chatAttachmentUploading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Paperclip className="size-4" />
+                      )}
+                    </Button>
                     <Input
                       value={chatInput}
                       onChange={(e) => handleChatInput(e.target.value)}
                       placeholder={t("sendMessage", language)}
                       className="flex-1 rounded-full bg-slate-50 border-slate-200 focus:border-emerald-400 focus:ring-emerald-400/20"
-                      disabled={chatLoading}
+                      disabled={chatLoading || chatAttachmentUploading}
                     />
                     <Button
                       type="submit"
                       size="icon"
                       className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
-                      disabled={!chatInput.trim() || chatLoading}
+                      disabled={(!chatInput.trim() && !pendingAttachment) || chatLoading || chatAttachmentUploading}
                     >
-                      <Send className="size-4" />
+                      {chatAttachmentUploading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Send className="size-4" />
+                      )}
                     </Button>
                   </form>
                 </div>
@@ -1316,12 +1664,12 @@ export function Dashboard() {
                                     {t("attachment", language)}
                                   </div>
                                   {hw.attachment.includes('.pdf') ? (
-                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
+                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
                                       <Download className="size-3" />{t("viewFile", language)}
                                     </a>
                                   ) : (
-                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer">
-                                      <img src={hw.attachment} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
+                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer">
+                                      <img src={getFileUrl(hw.attachment)} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
                                     </a>
                                   )}
                                 </div>
@@ -1335,12 +1683,12 @@ export function Dashboard() {
                                     {t("studentAttachment", language)}
                                   </div>
                                   {hw.studentAttachment.includes('.pdf') ? (
-                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
+                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
                                       <Download className="size-3" />{t("viewFile", language)}
                                     </a>
                                   ) : (
-                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer">
-                                      <img src={hw.studentAttachment} alt="My submission" className="max-h-32 rounded border border-amber-200" />
+                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer">
+                                      <img src={getFileUrl(hw.studentAttachment)} alt="My submission" className="max-h-32 rounded border border-amber-200" />
                                     </a>
                                   )}
                                 </div>
@@ -1512,6 +1860,63 @@ export function Dashboard() {
         onOpenChange={setBookingModalOpen}
         isTrial={isTrialBooking}
       />
+
+      {/* Reschedule Dialog */}
+      <Dialog
+        open={rescheduleBookingId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRescheduleBookingId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("rescheduleTitle", language)}</DialogTitle>
+            <DialogDescription>
+              {language === "en"
+                ? "Choose a new date and time for your lesson."
+                : "Wählen Sie ein neues Datum und eine neue Uhrzeit für Ihre Unterrichtsstunde."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{t("selectNewDate", language)}</Label>
+              <Input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("selectNewTime", language)}</Label>
+              <Input
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setRescheduleBookingId(null)}
+              disabled={rescheduleLoading}
+            >
+              {t("cancel", language)}
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={handleConfirmReschedule}
+              disabled={rescheduleLoading || !rescheduleDate || !rescheduleTime}
+            >
+              {rescheduleLoading ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : null}
+              {t("confirm", language)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

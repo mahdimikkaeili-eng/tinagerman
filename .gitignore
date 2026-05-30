@@ -49,7 +49,7 @@ server.log
 *.swo
 
 # upload folder (user uploads)
-upload/
+public/uploads/
 
 # OS
 Thumbs.db
