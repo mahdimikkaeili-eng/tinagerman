@@ -86,6 +86,9 @@ interface ChatMessage {
   senderId: string;
   receiverId: string;
   content: string;
+  attachment?: string;
+  attachmentType?: string;
+  attachmentName?: string;
   createdAt: string;
   isRead: boolean;
 }
@@ -170,8 +173,10 @@ export function Dashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const [socket, setSocket] = useState<ReturnType<typeof import("socket.io-client").io> | null>(null);
   const [tinaId, setTinaId] = useState<string | null>(null);
+  const [chatAttachmentUploading, setChatAttachmentUploading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load data on mount and tab change
   useEffect(() => {
@@ -311,7 +316,7 @@ export function Dashboard() {
 
   // Send message
   const handleSendMessage = useCallback(() => {
-    if (!chatInput.trim() || !socket || !tinaId || !user) return;
+    if ((!chatInput.trim()) || !socket || !tinaId || !user) return;
 
     const messageData = {
       receiverId: tinaId,
@@ -334,6 +339,73 @@ export function Dashboard() {
 
     setChatInput("");
   }, [chatInput, socket, tinaId, user]);
+
+  // Handle chat file attachment upload
+  const handleChatFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !socket || !tinaId || !user) return;
+
+    setChatAttachmentUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const { url } = await uploadRes.json();
+
+      // Determine attachment type
+      let attachmentType = "file";
+      if (file.type.startsWith("image/")) {
+        attachmentType = "image";
+      } else if (file.type.startsWith("audio/")) {
+        attachmentType = "voice";
+      }
+
+      const messageData = {
+        receiverId: tinaId,
+        content: chatInput.trim() || "",
+        attachment: url,
+        attachmentType,
+        attachmentName: file.name,
+      };
+
+      // Send via socket
+      socket.emit("sendMessage", messageData);
+
+      // Persist via API
+      fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId: user.id,
+          receiverId: tinaId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType,
+          attachmentName: file.name,
+        }),
+      }).catch(console.error);
+
+      setChatInput("");
+    } catch {
+      // silently fail
+    } finally {
+      setChatAttachmentUploading(false);
+      // Reset file input
+      if (chatFileInputRef.current) {
+        chatFileInputRef.current.value = "";
+      }
+    }
+  };
 
   // Typing indicator
   const handleChatInput = (value: string) => {
@@ -1170,9 +1242,47 @@ export function Dashboard() {
                                     : "bg-slate-100 text-slate-800 rounded-bl-md"
                                 }`}
                               >
-                                <p className="text-sm whitespace-pre-wrap break-words">
-                                  {msg.content}
-                                </p>
+                                {/* Attachment rendering */}
+                                {msg.attachment && msg.attachmentType === "image" && (
+                                  <div className="mb-2">
+                                    <img
+                                      src={msg.attachment}
+                                      alt={msg.attachmentName || "Image"}
+                                      className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer"
+                                      onClick={() => window.open(msg.attachment, "_blank")}
+                                    />
+                                  </div>
+                                )}
+                                {msg.attachment && msg.attachmentType === "voice" && (
+                                  <div className="mb-2">
+                                    <audio controls className="max-w-full h-8">
+                                      <source src={msg.attachment} />
+                                    </audio>
+                                    {msg.attachmentName && (
+                                      <p className={`text-[10px] mt-1 ${isOwn ? "text-emerald-200" : "text-slate-400"}`}>
+                                        {msg.attachmentName}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                {msg.attachment && msg.attachmentType === "file" && (
+                                  <div className="mb-2 flex items-center gap-2">
+                                    <FileText className="size-4 shrink-0" />
+                                    <a
+                                      href={msg.attachment}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`text-sm underline break-all ${isOwn ? "text-emerald-100 hover:text-white" : "text-emerald-600 hover:text-emerald-800"}`}
+                                    >
+                                      {msg.attachmentName || t("downloadFile", language)}
+                                    </a>
+                                  </div>
+                                )}
+                                {msg.content && (
+                                  <p className="text-sm whitespace-pre-wrap break-words">
+                                    {msg.content}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-1 mt-1">
                                   <p
                                     className={`text-[10px] ${
@@ -1232,8 +1342,30 @@ export function Dashboard() {
                       e.preventDefault();
                       handleSendMessage();
                     }}
-                    className="flex gap-2"
+                    className="flex gap-2 items-center"
                   >
+                    <input
+                      ref={chatFileInputRef}
+                      type="file"
+                      accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={handleChatFileUpload}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 shrink-0"
+                      disabled={chatLoading || chatAttachmentUploading}
+                      onClick={() => chatFileInputRef.current?.click()}
+                      title={t("chatAttachFile", language)}
+                    >
+                      {chatAttachmentUploading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Paperclip className="size-4" />
+                      )}
+                    </Button>
                     <Input
                       value={chatInput}
                       onChange={(e) => handleChatInput(e.target.value)}

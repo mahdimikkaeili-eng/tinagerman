@@ -57,7 +57,10 @@ export default function Home() {
       {isAuthenticated && (
         <div className="sticky top-0 z-50 bg-emerald-600 text-white px-4 py-2 flex items-center justify-center gap-3 shadow-md">
           <span className="text-sm font-medium">
-            {language === "en" ? "🏠 You're viewing the homepage" : "🏠 Sie sehen die Startseite"}
+            {language === "en"
+              ? `👋 Hi, ${user?.name || ''}! You're viewing the homepage`
+              : `👋 Hallo, ${user?.name || ''}! Sie sehen die Startseite`
+            }
           </span>
           <Button
             size="sm"

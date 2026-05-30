@@ -12,6 +12,9 @@ const translations = {
     navPricing: "Pricing",
     login: "Log In",
     signup: "Sign Up",
+    navDashboard: "Dashboard",
+    navLogout: "Log Out",
+    welcomeBack: "Welcome back",
 
     // Hero
     heroTitle: "Learn German with Tina",
@@ -263,6 +266,7 @@ const translations = {
     lessonRedirectMessage: "You'll be redirected to WhatsApp to book your German lesson.",
 
     // Telegram Integration
+    bookingTelegramNotice: "You'll receive a Telegram notification if connected",
     telegramConnect: "Connect Telegram",
     telegramConnectDesc: "Get class reminders on Telegram",
     telegramBotStart: "Start our Telegram bot to receive class reminders",
@@ -300,6 +304,16 @@ const translations = {
     // Welcome messages
     welcomeStudentMsg: "You're officially learning German now!",
     welcomeTeacherMsg: "Ready to shape some German minds today?",
+
+    // Meet Link Settings
+    defaultMeetLink: "Default Google Meet Link",
+    defaultMeetLinkDesc: "This link will be used for all your classes. Students will see it when they book a lesson.",
+    meetLinkSaved: "Meet link saved!",
+
+    // Chat Attachments
+    chatAttachFile: "Attach file",
+    chatSendImage: "Send image",
+    chatVoiceMessage: "Voice message",
   },
   de: {
     // Header
@@ -312,6 +326,9 @@ const translations = {
     navPricing: "Preise",
     login: "Anmelden",
     signup: "Registrieren",
+    navDashboard: "Dashboard",
+    navLogout: "Abmelden",
+    welcomeBack: "Willkommen zurück",
 
     // Hero
     heroTitle: "Lerne Deutsch mit Tina",
@@ -562,6 +579,7 @@ const translations = {
     lessonRedirectTitle: "Registrierung erfolgreich!",
 
     // Telegram Integration
+    bookingTelegramNotice: "Sie erhalten eine Telegram-Benachrichtigung, falls verbunden",
     telegramConnect: "Mit Telegram verbinden",
     telegramConnectDesc: "Erhalten Sie Unterrichtserinnerungen auf Telegram",
     telegramBotStart: "Starten Sie unseren Telegram-Bot, um Unterrichtserinnerungen zu erhalten",
@@ -600,6 +618,16 @@ const translations = {
     // Welcome messages
     welcomeStudentMsg: "Willkommen in der Welt des Deutschlernens!",
     welcomeTeacherMsg: "Bereit, deutsche Geister zu formen?",
+
+    // Meet Link Settings
+    defaultMeetLink: "Standard Google Meet Link",
+    defaultMeetLinkDesc: "Dieser Link wird für alle Unterrichtsstunden verwendet. Schüler sehen ihn bei der Buchung.",
+    meetLinkSaved: "Meet-Link gespeichert!",
+
+    // Chat Attachments
+    chatAttachFile: "Datei anhängen",
+    chatSendImage: "Bild senden",
+    chatVoiceMessage: "Sprachnachricht",
   },
 } as const;
 

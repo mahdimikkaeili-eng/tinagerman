@@ -93,9 +93,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate Google Meet link placeholder
-    const meetId = `${date}-${time}-${userId.slice(-6)}`.replace(/[^a-zA-Z0-9-]/g, '')
-    const meetLink = `https://meet.google.com/placeholder-${meetId}`
+    // Try to get default meet link from site config
+    let meetLink = ''
+    try {
+      const config = await db.siteConfig.findUnique({ where: { key: 'defaultMeetLink' } })
+      meetLink = config?.value || ''
+    } catch {}
 
     // Create booking
     const booking = await db.booking.create({
@@ -132,12 +135,36 @@ export async function POST(request: NextRequest) {
           title: isTrial ? 'Trial Lesson Booked / Probestunde gebucht' : 'Lesson Booked / Unterrichtsstunde gebucht',
           message: `Your ${courseTitle}${isTrialLabel} has been booked for ${date} at ${time} / Ihre ${courseTitleDe}${isTrialLabel} wurde für den ${date} um ${time} gebucht`,
           type: 'booking',
-          actionUrl: meetLink,
+          actionUrl: meetLink || `https://wa.me/4367763401913?text=${encodeURIComponent(`Hi Tina! I booked a lesson for ${date} at ${time}.`)}`,
           bookingId: booking.id,
         },
       })
     } catch {
       // Notification creation failure shouldn't block booking
+    }
+
+    // Send Telegram notification to student if they have telegramChatId
+    try {
+      const studentUser = await db.user.findUnique({
+        where: { id: userId },
+        select: { telegramChatId: true, name: true, nativeLanguage: true },
+      })
+      if (studentUser?.telegramChatId) {
+        const { sendTelegramMessage } = await import('@/lib/telegram')
+        const courseTitle = booking.course?.title || 'German lesson'
+        const courseTitleDe = booking.course?.titleDe || 'Deutschstunde'
+        const statusText = isTrial ? '✅ Free trial booked!' : '📅 Lesson booked!'
+        await sendTelegramMessage(
+          studentUser.telegramChatId,
+          `${statusText}\n\n` +
+          `📚 ${courseTitle} / ${courseTitleDe}\n` +
+          `📅 Date: ${date}\n🕐 Time: ${time}\n` +
+          `📊 Level: ${booking.course?.level || 'N/A'}\n` +
+          `${booking.meetLink ? `🔗 <a href="${booking.meetLink}">Join Google Meet</a>` : ''}`
+        )
+      }
+    } catch (error) {
+      console.error('Failed to send Telegram booking notification:', error)
     }
 
     return NextResponse.json(

@@ -113,6 +113,34 @@ export async function PATCH(
       // Notification creation failure shouldn't block booking update
     }
 
+    // Send Telegram notification to student about booking status change
+    try {
+      if (booking.user) {
+        const studentUser = await db.user.findUnique({
+          where: { id: booking.user.id },
+          select: { telegramChatId: true },
+        })
+        if (studentUser?.telegramChatId) {
+          const { sendTelegramMessage } = await import('@/lib/telegram')
+          let emoji = '✅'
+          let statusText = 'Confirmed'
+          if (status === 'cancelled') { emoji = '❌'; statusText = 'Cancelled' }
+          else if (status === 'completed') { emoji = '🎉'; statusText = 'Completed' }
+
+          const courseTitle = booking.course?.title || 'lesson'
+          await sendTelegramMessage(
+            studentUser.telegramChatId,
+            `${emoji} Booking ${statusText}\n\n` +
+            `📚 ${courseTitle}\n` +
+            `📅 Date: ${existingBooking.date}\n🕐 Time: ${existingBooking.time}\n` +
+            `${status === 'confirmed' && existingBooking.meetLink ? `🔗 <a href="${existingBooking.meetLink}">Join Google Meet</a>` : ''}`
+          )
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send Telegram booking status notification:', error)
+    }
+
     return NextResponse.json({ booking, message: 'Booking status updated successfully' })
   } catch (error) {
     console.error('Update teacher booking error:', error)

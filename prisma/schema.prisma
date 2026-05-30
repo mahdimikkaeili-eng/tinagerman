@@ -69,15 +69,18 @@ model Booking {
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  senderId   String
-  receiverId String
-  content    String
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  senderId       String
+  receiverId     String
+  content        String
+  attachment     String?  // File URL for images/files
+  attachmentType String?  // "image", "file", "voice"
+  attachmentName String?  // Original filename
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender         User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver       User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
 
 model Homework {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, Globe } from "lucide-react";
+import { Menu, Globe, LogOut, LayoutDashboard, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/app-store";
@@ -26,6 +26,10 @@ export function Header() {
     setMobileMenuOpen,
     setShowAuthModal,
     setAuthMode,
+    isAuthenticated,
+    user,
+    setViewMode,
+    logout,
   } = useAppStore();
   const [scrolled, setScrolled] = useState(false);
 
@@ -54,6 +58,21 @@ export function Header() {
   const openSignup = () => {
     setAuthMode("signup");
     setShowAuthModal(true);
+    setMobileMenuOpen(false);
+  };
+
+  const handleGoToDashboard = () => {
+    setViewMode("dashboard");
+    setMobileMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Continue with local logout even if API fails
+    }
+    logout();
     setMobileMenuOpen(false);
   };
 
@@ -122,21 +141,56 @@ export function Header() {
 
             {/* Auth buttons (desktop) */}
             <div className="hidden md:flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-slate-600 hover:text-emerald-600"
-                onClick={openLogin}
-              >
-                {t("login", language)}
-              </Button>
-              <Button
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                onClick={openSignup}
-              >
-                {t("signup", language)}
-              </Button>
+              {isAuthenticated && user ? (
+                <>
+                  <div className="flex items-center gap-2 px-2">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="size-7 rounded-full object-cover" />
+                    ) : (
+                      <div className="size-7 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <User className="size-4 text-emerald-700" />
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-slate-700">{user.name}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                    onClick={handleGoToDashboard}
+                  >
+                    <LayoutDashboard className="size-4 mr-1" />
+                    {t("navDashboard", language)}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-500 hover:text-red-600"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="size-4 mr-1" />
+                    {t("navLogout", language)}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-600 hover:text-emerald-600"
+                    onClick={openLogin}
+                  >
+                    {t("login", language)}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    onClick={openSignup}
+                  >
+                    {t("signup", language)}
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Mobile menu */}
@@ -187,19 +241,52 @@ export function Header() {
                     <Globe className="size-4" />
                     {language === "en" ? "Auf Deutsch anzeigen" : "Show in English"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="justify-start"
-                    onClick={openLogin}
-                  >
-                    {t("login", language)}
-                  </Button>
-                  <Button
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={openSignup}
-                  >
-                    {t("signup", language)}
-                  </Button>
+                  {isAuthenticated && user ? (
+                    <>
+                      <div className="flex items-center gap-2 px-4 py-3">
+                        {user.avatar ? (
+                          <img src={user.avatar} alt={user.name} className="size-8 rounded-full object-cover" />
+                        ) : (
+                          <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <User className="size-4 text-emerald-700" />
+                          </div>
+                        )}
+                        <span className="text-base font-medium text-slate-700">{user.name}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="justify-start gap-2"
+                        onClick={handleGoToDashboard}
+                      >
+                        <LayoutDashboard className="size-4" />
+                        {t("navDashboard", language)}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="size-4" />
+                        {t("navLogout", language)}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="justify-start"
+                        onClick={openLogin}
+                      >
+                        {t("login", language)}
+                      </Button>
+                      <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={openSignup}
+                      >
+                        {t("signup", language)}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>

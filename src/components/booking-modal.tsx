@@ -38,18 +38,15 @@ interface BookingModalProps {
   timezone?: string;
 }
 
-// Vienna time slots (teacher's availability)
+// Vienna time slots (teacher's availability) — 50-min lessons from 09:00 to 20:40
 const viennaTimeSlots = [
-  "09:00",
-  "09:50",
-  "10:40",
-  "11:30",
-  "13:00",
-  "13:50",
-  "14:40",
-  "15:30",
-  "16:20",
-  "17:10",
+  "09:00", "09:50",
+  "10:40", "11:30",
+  "12:20", "13:10",
+  "14:00", "14:50",
+  "15:40", "16:30",
+  "17:20", "18:10",
+  "19:00", "19:50",
 ];
 
 export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: BookingModalProps) {
