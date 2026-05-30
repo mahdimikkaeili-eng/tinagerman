@@ -82,7 +82,7 @@ export const useAppStore = create<AppState>((set) => ({
       user: null,
       currentView: "landing",
       activeDashboardTab: "profile",
-      viewMode: "dashboard",
+      viewMode: "landing",
     }),
 
   // Teacher

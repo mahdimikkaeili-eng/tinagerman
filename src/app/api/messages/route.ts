@@ -76,23 +76,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { receiverId, content } = body
+    const { receiverId, content, attachment, attachmentType, attachmentName } = body
 
-    if (!receiverId || !content) {
+    if (!receiverId) {
       return NextResponse.json(
-        { error: 'Receiver ID and content are required' },
+        { error: 'Receiver ID is required' },
         { status: 400 }
       )
     }
 
-    if (content.trim().length === 0) {
+    // Allow messages with either content or attachment
+    if ((!content || content.trim().length === 0) && !attachment) {
       return NextResponse.json(
-        { error: 'Message content cannot be empty' },
+        { error: 'Message content or attachment is required' },
         { status: 400 }
       )
     }
 
-    if (content.length > 5000) {
+    if (content && content.length > 5000) {
       return NextResponse.json(
         { error: 'Message content is too long (max 5000 characters)' },
         { status: 400 }
@@ -116,7 +117,10 @@ export async function POST(request: NextRequest) {
       data: {
         senderId: userId,
         receiverId,
-        content: content.trim(),
+        content: content?.trim() || '',
+        ...(attachment && { attachment }),
+        ...(attachmentType && { attachmentType }),
+        ...(attachmentName && { attachmentName }),
       },
       include: {
         sender: {

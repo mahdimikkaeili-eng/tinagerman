@@ -32,7 +32,10 @@ import {
   Edit3,
   Paperclip,
   Download,
+  FileText,
   Image as ImageIcon,
+  X,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +117,9 @@ interface ChatMessage {
   senderId: string;
   receiverId: string;
   content: string;
+  attachment?: string;
+  attachmentType?: string;
+  attachmentName?: string;
   createdAt: string;
   isRead: boolean;
 }
@@ -142,6 +148,16 @@ const statusColors: Record<string, string> = {
   completed: "bg-slate-100 text-slate-700 border-slate-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
 };
+
+// Helper to convert /uploads/xxx to /api/uploads?file=xxx for reliable file serving
+function getFileUrl(attachmentUrl: string): string {
+  if (!attachmentUrl) return attachmentUrl;
+  const filename = attachmentUrl.replace("/uploads/", "");
+  if (filename && !attachmentUrl.startsWith("/api/")) {
+    return `/api/uploads?file=${encodeURIComponent(filename)}`;
+  }
+  return attachmentUrl;
+}
 
 // Google Calendar URL generator
 function generateGoogleCalendarUrl(booking: TeacherBooking, timezone?: string) {
@@ -184,8 +200,15 @@ export function TeacherDashboard() {
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [socket, setSocket] = useState<ReturnType<typeof import("socket.io-client").io> | null>(null);
+  const [chatAttachmentUploading, setChatAttachmentUploading] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    file: File;
+    previewUrl: string;
+    type: string; // 'image' | 'voice' | 'file'
+  } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   // Schedule
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -391,7 +414,16 @@ export function TeacherDashboard() {
 
       socketInstance.on("newMessage", (message: ChatMessage) => {
         setChatMessages((prev) => {
+          // Avoid duplicates - check by ID or by matching content+sender+time
           if (prev.some((m) => m.id === message.id)) return prev;
+          // Also check for optimistic messages we already added locally
+          const isDuplicate = prev.some((m) =>
+            m.id.startsWith("temp_") &&
+            m.senderId === message.senderId &&
+            m.content === message.content &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 10000
+          );
+          if (isDuplicate) return prev;
           return [...prev, message];
         });
         if (message.senderId === selectedStudentId) {
@@ -445,24 +477,139 @@ export function TeacherDashboard() {
     }
   };
 
-  // Send message
-  const handleSendMessage = useCallback(() => {
-    if (!chatInput.trim() || !socket || !selectedStudentId || !user) return;
-    socket.emit("sendMessage", {
-      receiverId: selectedStudentId,
-      content: chatInput.trim(),
-    });
-    fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  // Send message (with optional pending attachment)
+  const handleSendMessage = useCallback(async () => {
+    if ((!chatInput.trim() && !pendingAttachment) || !socket || !selectedStudentId || !user) return;
+
+    // If there's a pending attachment, upload it first
+    if (pendingAttachment) {
+      setChatAttachmentUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", pendingAttachment.file);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Upload failed");
+        }
+
+        const { url } = await uploadRes.json();
+
+        // Add message to UI immediately (optimistic)
+        const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const optimisticMsg: ChatMessage = {
+          id: tempId,
+          senderId: user.id,
+          receiverId: selectedStudentId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType: pendingAttachment.type,
+          attachmentName: pendingAttachment.file.name,
+          createdAt: new Date().toISOString(),
+          isRead: false,
+        };
+        setChatMessages((prev) => [...prev, optimisticMsg]);
+
+        const messageData = {
+          receiverId: selectedStudentId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType: pendingAttachment.type,
+          attachmentName: pendingAttachment.file.name,
+        };
+
+        // Send via socket
+        socket.emit("sendMessage", messageData);
+
+        // Persist via API
+        fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            senderId: user.id,
+            receiverId: selectedStudentId,
+            content: chatInput.trim() || "",
+            attachment: url,
+            attachmentType: pendingAttachment.type,
+            attachmentName: pendingAttachment.file.name,
+          }),
+        }).catch(console.error);
+
+        setPendingAttachment(null);
+        setChatInput("");
+      } catch {
+        // silently fail
+      } finally {
+        setChatAttachmentUploading(false);
+        if (chatFileInputRef.current) {
+          chatFileInputRef.current.value = "";
+        }
+      }
+    } else {
+      // Text-only message - add to UI immediately (optimistic)
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const optimisticMsg: ChatMessage = {
+        id: tempId,
         senderId: user.id,
         receiverId: selectedStudentId,
         content: chatInput.trim(),
-      }),
-    }).catch(console.error);
-    setChatInput("");
-  }, [chatInput, socket, selectedStudentId, user]);
+        createdAt: new Date().toISOString(),
+        isRead: false,
+      };
+      setChatMessages((prev) => [...prev, optimisticMsg]);
+
+      socket.emit("sendMessage", {
+        receiverId: selectedStudentId,
+        content: chatInput.trim(),
+      });
+      fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId: user.id,
+          receiverId: selectedStudentId,
+          content: chatInput.trim(),
+        }),
+      }).catch(console.error);
+      setChatInput("");
+    }
+  }, [chatInput, socket, selectedStudentId, user, pendingAttachment]);
+
+  // Handle chat file selection (show preview, don't upload yet)
+  const handleChatFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Determine attachment type
+    let attachmentType = "file";
+    if (file.type.startsWith("image/")) {
+      attachmentType = "image";
+    } else if (file.type.startsWith("audio/")) {
+      attachmentType = "voice";
+    }
+
+    // Create preview URL for images
+    let previewUrl = "";
+    if (attachmentType === "image") {
+      previewUrl = URL.createObjectURL(file);
+    }
+
+    setPendingAttachment({
+      file,
+      previewUrl,
+      type: attachmentType,
+    });
+
+    // Reset file input so the same file can be selected again
+    if (chatFileInputRef.current) {
+      chatFileInputRef.current.value = "";
+    }
+  };
 
   const handleChatInput = (value: string) => {
     setChatInput(value);
@@ -480,6 +627,147 @@ export function TeacherDashboard() {
     }
     logout();
   };
+
+  // Default Meet Link
+  const [meetLinkInput, setMeetLinkInput] = useState("");
+  const [meetLinkSaving, setMeetLinkSaving] = useState(false);
+  const [meetLinkSaved, setMeetLinkSaved] = useState(false);
+
+  // Teaching Schedule Config
+  type DayConfig = { enabled: boolean; slots: string[] };
+  const defaultDaySlots = ["09:00","09:50","10:40","11:30","12:20","13:10","14:00","14:50","15:40","16:30","17:20","18:10","19:00","19:50"];
+  const defaultSundaySlots = ["09:00","09:50","10:40","11:30","12:20","13:10","14:00","14:50","15:40"];
+  const defaultScheduleConfig: Record<number, DayConfig> = {
+    0: { enabled: true, slots: defaultSundaySlots },
+    1: { enabled: true, slots: defaultDaySlots },
+    2: { enabled: true, slots: defaultDaySlots },
+    3: { enabled: true, slots: defaultDaySlots },
+    4: { enabled: true, slots: defaultDaySlots },
+    5: { enabled: false, slots: [] },
+    6: { enabled: false, slots: [] },
+  };
+  const [scheduleConfig, setScheduleConfig] = useState<Record<number, DayConfig>>(defaultScheduleConfig);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleSaved, setScheduleSaved] = useState(false);
+  const [newSlotInput, setNewSlotInput] = useState<Record<number, string>>({});
+
+  // Load default meet link and schedule on mount
+  useEffect(() => {
+    fetch("/api/config", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.config?.defaultMeetLink) {
+          setMeetLinkInput(data.config.defaultMeetLink);
+        }
+        if (data.config?.teachingSchedule) {
+          try {
+            const parsed = JSON.parse(data.config.teachingSchedule) as Record<number, DayConfig>;
+            if (parsed && typeof parsed === "object") {
+              setScheduleConfig(parsed);
+            }
+          } catch {
+            // use default
+          }
+        }
+      })
+      .catch(() => {
+        // silently fail
+      });
+  }, []);
+
+  const handleSaveMeetLink = async () => {
+    setMeetLinkSaving(true);
+    setMeetLinkSaved(false);
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ key: "defaultMeetLink", value: meetLinkInput }),
+      });
+      if (res.ok) {
+        setMeetLinkSaved(true);
+        setTimeout(() => setMeetLinkSaved(false), 3000);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setMeetLinkSaving(false);
+    }
+  };
+
+  // Save teaching schedule
+  const handleSaveSchedule = async () => {
+    setScheduleSaving(true);
+    setScheduleSaved(false);
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ key: "teachingSchedule", value: JSON.stringify(scheduleConfig) }),
+      });
+      if (res.ok) {
+        setScheduleSaved(true);
+        setTimeout(() => setScheduleSaved(false), 3000);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
+
+  const toggleDayEnabled = (dayNum: number) => {
+    setScheduleConfig((prev) => {
+      const dayConf = prev[dayNum] || { enabled: false, slots: [] };
+      const newEnabled = !dayConf.enabled;
+      return {
+        ...prev,
+        [dayNum]: {
+          enabled: newEnabled,
+          slots: newEnabled && dayConf.slots.length === 0
+            ? defaultDaySlots
+            : dayConf.slots,
+        },
+      };
+    });
+  };
+
+  const removeSlot = (dayNum: number, slot: string) => {
+    setScheduleConfig((prev) => {
+      const dayConf = prev[dayNum] || { enabled: true, slots: [] };
+      return {
+        ...prev,
+        [dayNum]: {
+          ...dayConf,
+          slots: dayConf.slots.filter((s) => s !== slot),
+        },
+      };
+    });
+  };
+
+  const addSlot = (dayNum: number) => {
+    const slotValue = newSlotInput[dayNum]?.trim();
+    if (!slotValue || !/^\d{2}:\d{2}$/.test(slotValue)) return;
+    setScheduleConfig((prev) => {
+      const dayConf = prev[dayNum] || { enabled: true, slots: [] };
+      if (dayConf.slots.includes(slotValue)) return prev;
+      const newSlots = [...dayConf.slots, slotValue].sort();
+      return {
+        ...prev,
+        [dayNum]: {
+          ...dayConf,
+          slots: newSlots,
+        },
+      };
+    });
+    setNewSlotInput((prev) => ({ ...prev, [dayNum]: "" }));
+  };
+
+  const dayNames = language === "de"
+    ? ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+    : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   // Avatar upload handler
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -936,6 +1224,46 @@ export function TeacherDashboard() {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Default Google Meet Link Setting */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Video className="size-5 text-emerald-600" />
+                      {t("defaultMeetLink", language)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-slate-500">
+                      {t("defaultMeetLinkDesc", language)}
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        placeholder="https://meet.google.com/xxx-xxx-xxx"
+                        value={meetLinkInput}
+                        onChange={(e) => {
+                          setMeetLinkInput(e.target.value);
+                          setMeetLinkSaved(false);
+                        }}
+                        disabled={meetLinkSaving}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleSaveMeetLink}
+                        disabled={meetLinkSaving}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                      >
+                        {meetLinkSaving ? (
+                          <Loader2 className="size-4 animate-spin mr-1" />
+                        ) : meetLinkSaved ? (
+                          <CheckCircle2 className="size-4 mr-1" />
+                        ) : null}
+                        {meetLinkSaved ? t("meetLinkSaved", language) : t("save", language)}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
 
@@ -1127,7 +1455,45 @@ export function TeacherDashboard() {
                               return (
                                 <div key={msg.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
                                   <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isOwn ? "bg-emerald-600 text-white rounded-br-md" : "bg-slate-100 text-slate-800 rounded-bl-md"}`}>
-                                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                                    {/* Attachment rendering */}
+                                    {msg.attachment && msg.attachmentType === "image" && (
+                                      <div className="mb-2">
+                                        <img
+                                          src={getFileUrl(msg.attachment)}
+                                          alt={msg.attachmentName || "Image"}
+                                          className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer"
+                                          onClick={() => window.open(getFileUrl(msg.attachment), "_blank")}
+                                        />
+                                      </div>
+                                    )}
+                                    {msg.attachment && msg.attachmentType === "voice" && (
+                                      <div className="mb-2">
+                                        <audio controls className="max-w-full h-8">
+                                          <source src={getFileUrl(msg.attachment)} />
+                                        </audio>
+                                        {msg.attachmentName && (
+                                          <p className={`text-[10px] mt-1 ${isOwn ? "text-emerald-200" : "text-slate-400"}`}>
+                                            {msg.attachmentName}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                    {msg.attachment && msg.attachmentType === "file" && (
+                                      <div className="mb-2 flex items-center gap-2">
+                                        <FileText className="size-4 shrink-0" />
+                                        <a
+                                          href={getFileUrl(msg.attachment)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`text-sm underline break-all ${isOwn ? "text-emerald-100 hover:text-white" : "text-emerald-600 hover:text-emerald-800"}`}
+                                        >
+                                          {msg.attachmentName || t("downloadFile", language)}
+                                        </a>
+                                      </div>
+                                    )}
+                                    {msg.content && (
+                                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                                    )}
                                     <div className="flex items-center gap-1 mt-1">
                                       <p className={`text-[10px] ${isOwn ? "text-emerald-200" : "text-slate-400"}`}>
                                         {formatMessageTime(msg.createdAt)}
@@ -1158,8 +1524,69 @@ export function TeacherDashboard() {
                         )}
                       </ScrollArea>
                     </CardContent>
-                    <div className="p-3 border-t border-slate-200">
-                      <div className="flex gap-2">
+                    <div className="border-t border-slate-200 bg-white">
+                      {/* Pending attachment preview */}
+                      {pendingAttachment && (
+                        <div className="px-3 pt-3 pb-1">
+                          <div className="relative inline-flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 max-w-[280px]">
+                            {pendingAttachment.type === "image" && pendingAttachment.previewUrl ? (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={pendingAttachment.previewUrl}
+                                  alt="Preview"
+                                  className="size-12 rounded-lg object-cover"
+                                />
+                                <span className="text-xs text-slate-600 truncate max-w-[140px]">{pendingAttachment.file.name}</span>
+                              </div>
+                            ) : pendingAttachment.type === "voice" ? (
+                              <div className="flex items-center gap-2">
+                                <Mic className="size-5 text-emerald-600 shrink-0" />
+                                <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <FileText className="size-5 text-amber-600 shrink-0" />
+                                <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPendingAttachment(null);
+                                if (pendingAttachment.previewUrl) {
+                                  URL.revokeObjectURL(pendingAttachment.previewUrl);
+                                }
+                              }}
+                              className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-slate-400 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2 items-center p-3">
+                        <input
+                          ref={chatFileInputRef}
+                          type="file"
+                          accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
+                          className="hidden"
+                          onChange={handleChatFileSelect}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 shrink-0"
+                          disabled={chatLoading || chatAttachmentUploading}
+                          onClick={() => chatFileInputRef.current?.click()}
+                          title={t("chatAttachFile", language)}
+                        >
+                          {chatAttachmentUploading ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Paperclip className="size-4" />
+                          )}
+                        </Button>
                         <Input
                           value={chatInput}
                           onChange={(e) => handleChatInput(e.target.value)}
@@ -1170,10 +1597,20 @@ export function TeacherDashboard() {
                               handleSendMessage();
                             }
                           }}
-                          className="flex-1"
+                          className="flex-1 rounded-full bg-slate-50 border-slate-200 focus:border-emerald-400 focus:ring-emerald-400/20"
+                          disabled={chatLoading || chatAttachmentUploading}
                         />
-                        <Button size="icon" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSendMessage} disabled={!chatInput.trim()}>
-                          <Send className="size-4" />
+                        <Button
+                          size="icon"
+                          className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                          onClick={handleSendMessage}
+                          disabled={(!chatInput.trim() && !pendingAttachment) || chatLoading || chatAttachmentUploading}
+                        >
+                          {chatAttachmentUploading ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Send className="size-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1651,49 +2088,207 @@ export function TeacherDashboard() {
 
             {/* SCHEDULE TAB */}
             {activeTab === "schedule" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900">{t("teacherScheduleTab", language)}</h2>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
-                      <ChevronLeft className="size-4" />
-                    </Button>
-                    <span className="text-sm font-medium text-slate-700 min-w-[200px] text-center">
-                      {weekDays[0].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric" })} — {weekDays[6].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                    <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {bookingsLoading ? (
-                  <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
-                ) : (
-                  <div className="grid grid-cols-7 gap-2">
-                    {weekDays.map((day, idx) => {
-                      const dayBookings = getBookingsForDay(day);
-                      const isToday = day.toDateString() === new Date().toDateString();
+              <div className="space-y-6">
+                {/* Teaching Schedule Configuration */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="size-5 text-emerald-600" />
+                      {t("teachingSchedule", language)}
+                    </CardTitle>
+                    <p className="text-sm text-slate-500">{t("teachingScheduleDesc", language)}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[0, 1, 2, 3, 4, 5, 6].map((dayNum) => {
+                      const dayConf = scheduleConfig[dayNum] || { enabled: false, slots: [] };
                       return (
-                        <div key={idx} className={`rounded-xl border p-2 min-h-[120px] ${isToday ? "border-emerald-300 bg-emerald-50/50" : "border-slate-200 bg-white"}`}>
-                          <p className={`text-xs font-semibold mb-1 ${isToday ? "text-emerald-700" : "text-slate-500"}`}>
-                            {day.toLocaleDateString(language === "de" ? "de-DE" : "en-US", { weekday: "short" })}
-                          </p>
-                          <p className={`text-lg font-bold mb-2 ${isToday ? "text-emerald-700" : "text-slate-900"}`}>
-                            {day.getDate()}
-                          </p>
-                          {dayBookings.map((b) => (
-                            <div key={b.id} className={`text-[10px] rounded-md px-1.5 py-1 mb-1 ${b.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                              <div className="font-medium">{formatTime(b.time)}</div>
-                              <div className="truncate">{b.user.name}</div>
-                              <div className="truncate">{b.course.level}</div>
+                        <div
+                          key={dayNum}
+                          className={`rounded-xl border p-4 transition-all ${
+                            dayConf.enabled
+                              ? "border-emerald-200 bg-emerald-50/30"
+                              : "border-slate-200 bg-slate-50/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleDayEnabled(dayNum)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                  dayConf.enabled ? "bg-emerald-500" : "bg-slate-300"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
+                                    dayConf.enabled ? "translate-x-6" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                              <span className="text-sm font-semibold text-slate-900">
+                                {dayNames[dayNum]}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  dayConf.enabled
+                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                    : "bg-slate-100 text-slate-500 border-slate-200"
+                                }
+                              >
+                                {dayConf.enabled ? t("dayEnabled", language) : t("dayDisabled", language)}
+                              </Badge>
                             </div>
-                          ))}
+                            {dayConf.enabled && (
+                              <span className="text-xs text-slate-400">
+                                {dayConf.slots.length} {language === "en" ? "slots" : "Zeitfenster"}
+                              </span>
+                            )}
+                          </div>
+
+                          {dayConf.enabled && (
+                            <div className="space-y-3">
+                              {dayConf.slots.length === 0 ? (
+                                <p className="text-sm text-slate-400 italic">{t("noSlotsThisDay", language)}</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {dayConf.slots.map((slot) => (
+                                    <span
+                                      key={slot}
+                                      className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+                                    >
+                                      <Clock className="size-3 text-emerald-500" />
+                                      {slot}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeSlot(dayNum, slot)}
+                                        className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
+                                        title={t("removeSlot", language)}
+                                      >
+                                        <XCircle className="size-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add slot input */}
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="text"
+                                  placeholder="HH:MM"
+                                  value={newSlotInput[dayNum] || ""}
+                                  onChange={(e) =>
+                                    setNewSlotInput((prev) => ({
+                                      ...prev,
+                                      [dayNum]: e.target.value,
+                                    }))
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      addSlot(dayNum);
+                                    }
+                                  }}
+                                  className="w-24 h-8 text-sm"
+                                  maxLength={5}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addSlot(dayNum)}
+                                  className="h-8 text-xs"
+                                  disabled={!/^\d{2}:\d{2}$/.test(newSlotInput[dayNum]?.trim() || "")}
+                                >
+                                  <Plus className="size-3 mr-1" />
+                                  {t("addSlot", language)}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <Button
+                        onClick={handleSaveSchedule}
+                        disabled={scheduleSaving}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        {scheduleSaving ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-2" />
+                            {t("loading", language)}
+                          </>
+                        ) : (
+                          t("save", language)
+                        )}
+                      </Button>
+                      {scheduleSaved && (
+                        <span className="text-sm font-medium text-emerald-600 flex items-center gap-1">
+                          <CheckCircle2 className="size-4" />
+                          {t("scheduleSaved", language)}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Weekly Calendar View */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {language === "en" ? "Weekly Calendar" : "Wochenkalender"}
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
+                        <ChevronLeft className="size-4" />
+                      </Button>
+                      <span className="text-sm font-medium text-slate-700 min-w-[200px] text-center">
+                        {weekDays[0].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric" })} — {weekDays[6].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                )}
+
+                  {bookingsLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
+                  ) : (
+                    <div className="grid grid-cols-7 gap-2">
+                      {weekDays.map((day, idx) => {
+                        const dayBookings = getBookingsForDay(day);
+                        const isToday = day.toDateString() === new Date().toDateString();
+                        const dayOfWeek = day.getDay();
+                        const dayConf = scheduleConfig[dayOfWeek];
+                        const isDayEnabled = dayConf?.enabled;
+                        return (
+                          <div key={idx} className={`rounded-xl border p-2 min-h-[120px] ${isToday ? "border-emerald-300 bg-emerald-50/50" : isDayEnabled ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50 opacity-60"}`}>
+                            <p className={`text-xs font-semibold mb-1 ${isToday ? "text-emerald-700" : "text-slate-500"}`}>
+                              {day.toLocaleDateString(language === "de" ? "de-DE" : "en-US", { weekday: "short" })}
+                            </p>
+                            <p className={`text-lg font-bold mb-2 ${isToday ? "text-emerald-700" : "text-slate-900"}`}>
+                              {day.getDate()}
+                            </p>
+                            {!isDayEnabled && (
+                              <p className="text-[10px] text-slate-400 italic">{t("dayDisabled", language)}</p>
+                            )}
+                            {dayBookings.map((b) => (
+                              <div key={b.id} className={`text-[10px] rounded-md px-1.5 py-1 mb-1 ${b.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                <div className="font-medium">{formatTime(b.time)}</div>
+                                <div className="truncate">{b.user.name}</div>
+                                <div className="truncate">{b.course.level}</div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </main>

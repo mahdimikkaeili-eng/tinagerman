@@ -21,6 +21,9 @@ const messageStore = new Map<string, Array<{
   senderId: string
   receiverId: string
   content: string
+  attachment?: string
+  attachmentType?: string
+  attachmentName?: string
   createdAt: string
   isRead: boolean
 }>>()
@@ -54,11 +57,11 @@ io.on('connection', (socket) => {
   })
 
   // Send a message
-  socket.on('sendMessage', (data: { receiverId: string; content: string }) => {
+  socket.on('sendMessage', (data: { receiverId: string; content: string; attachment?: string; attachmentType?: string; attachmentName?: string }) => {
     const senderId = socket.data.userId
     if (!senderId) return
 
-    const { receiverId, content } = data
+    const { receiverId, content, attachment, attachmentType, attachmentName } = data
     const roomId = getRoomId(senderId, receiverId)
     const messageId = generateId()
 
@@ -67,6 +70,9 @@ io.on('connection', (socket) => {
       senderId,
       receiverId,
       content,
+      ...(attachment && { attachment }),
+      ...(attachmentType && { attachmentType }),
+      ...(attachmentName && { attachmentName }),
       createdAt: new Date().toISOString(),
       isRead: false
     }
@@ -79,7 +85,7 @@ io.on('connection', (socket) => {
 
     // Broadcast to room
     io.to(roomId).emit('newMessage', message)
-    console.log(`Message from ${senderId} to ${receiverId}: ${content.substring(0, 50)}...`)
+    console.log(`Message from ${senderId} to ${receiverId}: ${content.substring(0, 50)}${attachment ? ` [attachment: ${attachmentType}]` : ''}`)
   })
 
   // Typing indicator
