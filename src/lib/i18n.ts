@@ -314,6 +314,26 @@ const translations = {
     chatAttachFile: "Attach file",
     chatSendImage: "Send image",
     chatVoiceMessage: "Voice message",
+
+    // Reschedule/Cancel
+    rescheduleBooking: "Reschedule",
+    cancelBooking: "Cancel Booking",
+    cancelConfirm: "Are you sure you want to cancel this booking?",
+    rescheduleTitle: "Reschedule Lesson",
+    selectNewDate: "Select new date",
+    selectNewTime: "Select new time",
+    bookingCancelled: "Booking cancelled",
+    bookingRescheduled: "Booking rescheduled",
+
+    // Teaching Schedule
+    teachingSchedule: "Teaching Schedule",
+    teachingScheduleDesc: "Set your available days and time slots",
+    scheduleSaved: "Schedule saved!",
+    dayEnabled: "Open",
+    dayDisabled: "Closed",
+    addSlot: "Add slot",
+    removeSlot: "Remove",
+    noSlotsThisDay: "No availability on this day",
   },
   de: {
     // Header
@@ -628,6 +648,26 @@ const translations = {
     chatAttachFile: "Datei anhängen",
     chatSendImage: "Bild senden",
     chatVoiceMessage: "Sprachnachricht",
+
+    // Reschedule/Cancel
+    rescheduleBooking: "Verschieben",
+    cancelBooking: "Buchung stornieren",
+    cancelConfirm: "Möchten Sie diese Buchung wirklich stornieren?",
+    rescheduleTitle: "Unterricht verschieben",
+    selectNewDate: "Neues Datum wählen",
+    selectNewTime: "Neue Uhrzeit wählen",
+    bookingCancelled: "Buchung storniert",
+    bookingRescheduled: "Buchung verschoben",
+
+    // Teaching Schedule
+    teachingSchedule: "Unterrichtszeitplan",
+    teachingScheduleDesc: "Legen Sie Ihre verfügbaren Tage und Zeitfenster fest",
+    scheduleSaved: "Zeitplan gespeichert!",
+    dayEnabled: "Geöffnet",
+    dayDisabled: "Geschlossen",
+    addSlot: "Zeitfenster hinzufügen",
+    removeSlot: "Entfernen",
+    noSlotsThisDay: "Keine Verfügbarkeit an diesem Tag",
   },
 } as const;
 

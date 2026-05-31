@@ -39,6 +39,7 @@ const nativeLanguages = [
   { value: "pt", label: "Português" },
   { value: "it", label: "Italiano" },
   { value: "uk", label: "Українська (Ukrainian)" },
+  { value: "hu", label: "Magyar (Hungarian)" },
   { value: "other", label: "Other" },
 ];
 

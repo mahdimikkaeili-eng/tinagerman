@@ -559,13 +559,41 @@ export function TeacherDashboard() {
   const [meetLinkSaving, setMeetLinkSaving] = useState(false);
   const [meetLinkSaved, setMeetLinkSaved] = useState(false);
 
-  // Load default meet link on mount
+  // Teaching Schedule Config
+  type DayConfig = { enabled: boolean; slots: string[] };
+  const defaultDaySlots = ["09:00","09:50","10:40","11:30","12:20","13:10","14:00","14:50","15:40","16:30","17:20","18:10","19:00","19:50"];
+  const defaultSundaySlots = ["09:00","09:50","10:40","11:30","12:20","13:10","14:00","14:50","15:40"];
+  const defaultScheduleConfig: Record<number, DayConfig> = {
+    0: { enabled: true, slots: defaultSundaySlots },
+    1: { enabled: true, slots: defaultDaySlots },
+    2: { enabled: true, slots: defaultDaySlots },
+    3: { enabled: true, slots: defaultDaySlots },
+    4: { enabled: true, slots: defaultDaySlots },
+    5: { enabled: false, slots: [] },
+    6: { enabled: false, slots: [] },
+  };
+  const [scheduleConfig, setScheduleConfig] = useState<Record<number, DayConfig>>(defaultScheduleConfig);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleSaved, setScheduleSaved] = useState(false);
+  const [newSlotInput, setNewSlotInput] = useState<Record<number, string>>({});
+
+  // Load default meet link and schedule on mount
   useEffect(() => {
     fetch("/api/config", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         if (data.config?.defaultMeetLink) {
           setMeetLinkInput(data.config.defaultMeetLink);
+        }
+        if (data.config?.teachingSchedule) {
+          try {
+            const parsed = JSON.parse(data.config.teachingSchedule) as Record<number, DayConfig>;
+            if (parsed && typeof parsed === "object") {
+              setScheduleConfig(parsed);
+            }
+          } catch {
+            // use default
+          }
         }
       })
       .catch(() => {
@@ -593,6 +621,79 @@ export function TeacherDashboard() {
       setMeetLinkSaving(false);
     }
   };
+
+  // Save teaching schedule
+  const handleSaveSchedule = async () => {
+    setScheduleSaving(true);
+    setScheduleSaved(false);
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ key: "teachingSchedule", value: JSON.stringify(scheduleConfig) }),
+      });
+      if (res.ok) {
+        setScheduleSaved(true);
+        setTimeout(() => setScheduleSaved(false), 3000);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
+
+  const toggleDayEnabled = (dayNum: number) => {
+    setScheduleConfig((prev) => {
+      const dayConf = prev[dayNum] || { enabled: false, slots: [] };
+      const newEnabled = !dayConf.enabled;
+      return {
+        ...prev,
+        [dayNum]: {
+          enabled: newEnabled,
+          slots: newEnabled && dayConf.slots.length === 0
+            ? defaultDaySlots
+            : dayConf.slots,
+        },
+      };
+    });
+  };
+
+  const removeSlot = (dayNum: number, slot: string) => {
+    setScheduleConfig((prev) => {
+      const dayConf = prev[dayNum] || { enabled: true, slots: [] };
+      return {
+        ...prev,
+        [dayNum]: {
+          ...dayConf,
+          slots: dayConf.slots.filter((s) => s !== slot),
+        },
+      };
+    });
+  };
+
+  const addSlot = (dayNum: number) => {
+    const slotValue = newSlotInput[dayNum]?.trim();
+    if (!slotValue || !/^\d{2}:\d{2}$/.test(slotValue)) return;
+    setScheduleConfig((prev) => {
+      const dayConf = prev[dayNum] || { enabled: true, slots: [] };
+      if (dayConf.slots.includes(slotValue)) return prev;
+      const newSlots = [...dayConf.slots, slotValue].sort();
+      return {
+        ...prev,
+        [dayNum]: {
+          ...dayConf,
+          slots: newSlots,
+        },
+      };
+    });
+    setNewSlotInput((prev) => ({ ...prev, [dayNum]: "" }));
+  };
+
+  const dayNames = language === "de"
+    ? ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+    : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   // Avatar upload handler
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1864,49 +1965,207 @@ export function TeacherDashboard() {
 
             {/* SCHEDULE TAB */}
             {activeTab === "schedule" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900">{t("teacherScheduleTab", language)}</h2>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
-                      <ChevronLeft className="size-4" />
-                    </Button>
-                    <span className="text-sm font-medium text-slate-700 min-w-[200px] text-center">
-                      {weekDays[0].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric" })} — {weekDays[6].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                    <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {bookingsLoading ? (
-                  <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
-                ) : (
-                  <div className="grid grid-cols-7 gap-2">
-                    {weekDays.map((day, idx) => {
-                      const dayBookings = getBookingsForDay(day);
-                      const isToday = day.toDateString() === new Date().toDateString();
+              <div className="space-y-6">
+                {/* Teaching Schedule Configuration */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="size-5 text-emerald-600" />
+                      {t("teachingSchedule", language)}
+                    </CardTitle>
+                    <p className="text-sm text-slate-500">{t("teachingScheduleDesc", language)}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[0, 1, 2, 3, 4, 5, 6].map((dayNum) => {
+                      const dayConf = scheduleConfig[dayNum] || { enabled: false, slots: [] };
                       return (
-                        <div key={idx} className={`rounded-xl border p-2 min-h-[120px] ${isToday ? "border-emerald-300 bg-emerald-50/50" : "border-slate-200 bg-white"}`}>
-                          <p className={`text-xs font-semibold mb-1 ${isToday ? "text-emerald-700" : "text-slate-500"}`}>
-                            {day.toLocaleDateString(language === "de" ? "de-DE" : "en-US", { weekday: "short" })}
-                          </p>
-                          <p className={`text-lg font-bold mb-2 ${isToday ? "text-emerald-700" : "text-slate-900"}`}>
-                            {day.getDate()}
-                          </p>
-                          {dayBookings.map((b) => (
-                            <div key={b.id} className={`text-[10px] rounded-md px-1.5 py-1 mb-1 ${b.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                              <div className="font-medium">{formatTime(b.time)}</div>
-                              <div className="truncate">{b.user.name}</div>
-                              <div className="truncate">{b.course.level}</div>
+                        <div
+                          key={dayNum}
+                          className={`rounded-xl border p-4 transition-all ${
+                            dayConf.enabled
+                              ? "border-emerald-200 bg-emerald-50/30"
+                              : "border-slate-200 bg-slate-50/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleDayEnabled(dayNum)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                  dayConf.enabled ? "bg-emerald-500" : "bg-slate-300"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
+                                    dayConf.enabled ? "translate-x-6" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                              <span className="text-sm font-semibold text-slate-900">
+                                {dayNames[dayNum]}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  dayConf.enabled
+                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                    : "bg-slate-100 text-slate-500 border-slate-200"
+                                }
+                              >
+                                {dayConf.enabled ? t("dayEnabled", language) : t("dayDisabled", language)}
+                              </Badge>
                             </div>
-                          ))}
+                            {dayConf.enabled && (
+                              <span className="text-xs text-slate-400">
+                                {dayConf.slots.length} {language === "en" ? "slots" : "Zeitfenster"}
+                              </span>
+                            )}
+                          </div>
+
+                          {dayConf.enabled && (
+                            <div className="space-y-3">
+                              {dayConf.slots.length === 0 ? (
+                                <p className="text-sm text-slate-400 italic">{t("noSlotsThisDay", language)}</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {dayConf.slots.map((slot) => (
+                                    <span
+                                      key={slot}
+                                      className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+                                    >
+                                      <Clock className="size-3 text-emerald-500" />
+                                      {slot}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeSlot(dayNum, slot)}
+                                        className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
+                                        title={t("removeSlot", language)}
+                                      >
+                                        <XCircle className="size-3.5" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add slot input */}
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="text"
+                                  placeholder="HH:MM"
+                                  value={newSlotInput[dayNum] || ""}
+                                  onChange={(e) =>
+                                    setNewSlotInput((prev) => ({
+                                      ...prev,
+                                      [dayNum]: e.target.value,
+                                    }))
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      addSlot(dayNum);
+                                    }
+                                  }}
+                                  className="w-24 h-8 text-sm"
+                                  maxLength={5}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addSlot(dayNum)}
+                                  className="h-8 text-xs"
+                                  disabled={!/^\d{2}:\d{2}$/.test(newSlotInput[dayNum]?.trim() || "")}
+                                >
+                                  <Plus className="size-3 mr-1" />
+                                  {t("addSlot", language)}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <Button
+                        onClick={handleSaveSchedule}
+                        disabled={scheduleSaving}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        {scheduleSaving ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-2" />
+                            {t("loading", language)}
+                          </>
+                        ) : (
+                          t("save", language)
+                        )}
+                      </Button>
+                      {scheduleSaved && (
+                        <span className="text-sm font-medium text-emerald-600 flex items-center gap-1">
+                          <CheckCircle2 className="size-4" />
+                          {t("scheduleSaved", language)}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Weekly Calendar View */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {language === "en" ? "Weekly Calendar" : "Wochenkalender"}
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
+                        <ChevronLeft className="size-4" />
+                      </Button>
+                      <span className="text-sm font-medium text-slate-700 min-w-[200px] text-center">
+                        {weekDays[0].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric" })} — {weekDays[6].toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                )}
+
+                  {bookingsLoading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
+                  ) : (
+                    <div className="grid grid-cols-7 gap-2">
+                      {weekDays.map((day, idx) => {
+                        const dayBookings = getBookingsForDay(day);
+                        const isToday = day.toDateString() === new Date().toDateString();
+                        const dayOfWeek = day.getDay();
+                        const dayConf = scheduleConfig[dayOfWeek];
+                        const isDayEnabled = dayConf?.enabled;
+                        return (
+                          <div key={idx} className={`rounded-xl border p-2 min-h-[120px] ${isToday ? "border-emerald-300 bg-emerald-50/50" : isDayEnabled ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50 opacity-60"}`}>
+                            <p className={`text-xs font-semibold mb-1 ${isToday ? "text-emerald-700" : "text-slate-500"}`}>
+                              {day.toLocaleDateString(language === "de" ? "de-DE" : "en-US", { weekday: "short" })}
+                            </p>
+                            <p className={`text-lg font-bold mb-2 ${isToday ? "text-emerald-700" : "text-slate-900"}`}>
+                              {day.getDate()}
+                            </p>
+                            {!isDayEnabled && (
+                              <p className="text-[10px] text-slate-400 italic">{t("dayDisabled", language)}</p>
+                            )}
+                            {dayBookings.map((b) => (
+                              <div key={b.id} className={`text-[10px] rounded-md px-1.5 py-1 mb-1 ${b.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                <div className="font-medium">{formatTime(b.time)}</div>
+                                <div className="truncate">{b.user.name}</div>
+                                <div className="truncate">{b.course.level}</div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </main>

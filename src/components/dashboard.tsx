@@ -58,6 +58,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface Booking {
   id: string;
@@ -108,6 +117,7 @@ const nativeLanguages = [
   { value: "pt", label: "Português" },
   { value: "it", label: "Italiano" },
   { value: "uk", label: "Українська (Ukrainian)" },
+  { value: "hu", label: "Magyar (Hungarian)" },
   { value: "other", label: "Other" },
 ];
 
@@ -177,6 +187,12 @@ export function Dashboard() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reschedule dialog state
+  const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   // Load data on mount and tab change
   useEffect(() => {
@@ -464,6 +480,70 @@ export function Dashboard() {
       // continue anyway
     }
     logout();
+  };
+
+  // Handle cancel booking
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm(t("cancelConfirm", language))) return;
+
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+
+      if (res.ok) {
+        toast.success(t("bookingCancelled", language));
+        // Refresh bookings
+        setBookings((prev) =>
+          prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
+        );
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  // Handle open reschedule dialog
+  const handleOpenReschedule = (booking: Booking) => {
+    setRescheduleBookingId(booking.id);
+    setRescheduleDate(booking.date);
+    setRescheduleTime(booking.time);
+    setRescheduleLoading(false);
+  };
+
+  // Handle confirm reschedule
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleBookingId || !rescheduleDate || !rescheduleTime) return;
+
+    setRescheduleLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/${rescheduleBookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ date: rescheduleDate, time: rescheduleTime }),
+      });
+
+      if (res.ok) {
+        toast.success(t("bookingRescheduled", language));
+        // Refresh bookings
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === rescheduleBookingId
+              ? { ...b, date: rescheduleDate, time: rescheduleTime, status: "pending" }
+              : b
+          )
+        );
+        setRescheduleBookingId(null);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setRescheduleLoading(false);
+    }
   };
 
   // Avatar upload handler
@@ -1128,6 +1208,27 @@ export function Dashboard() {
                                   {t("addToCalendar", language)}
                                 </Button>
                               )}
+                              {(booking.status === "confirmed" || booking.status === "pending") && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                    onClick={() => handleOpenReschedule(booking)}
+                                  >
+                                    <Clock className="size-3 mr-1" />
+                                    {t("rescheduleBooking", language)}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                  >
+                                    {t("cancelBooking", language)}
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1644,6 +1745,63 @@ export function Dashboard() {
         onOpenChange={setBookingModalOpen}
         isTrial={isTrialBooking}
       />
+
+      {/* Reschedule Dialog */}
+      <Dialog
+        open={rescheduleBookingId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRescheduleBookingId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("rescheduleTitle", language)}</DialogTitle>
+            <DialogDescription>
+              {language === "en"
+                ? "Choose a new date and time for your lesson."
+                : "Wählen Sie ein neues Datum und eine neue Uhrzeit für Ihre Unterrichtsstunde."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{t("selectNewDate", language)}</Label>
+              <Input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("selectNewTime", language)}</Label>
+              <Input
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setRescheduleBookingId(null)}
+              disabled={rescheduleLoading}
+            >
+              {t("cancel", language)}
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={handleConfirmReschedule}
+              disabled={rescheduleLoading || !rescheduleDate || !rescheduleTime}
+            >
+              {rescheduleLoading ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : null}
+              {t("confirm", language)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
