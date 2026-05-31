@@ -147,6 +147,16 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700 border-red-200",
 };
 
+// Helper to convert /uploads/xxx to /api/uploads?file=xxx for reliable file serving
+function getFileUrl(attachmentUrl: string): string {
+  if (!attachmentUrl) return attachmentUrl;
+  const filename = attachmentUrl.replace("/uploads/", "");
+  if (filename && !attachmentUrl.startsWith("/api/")) {
+    return `/api/uploads?file=${encodeURIComponent(filename)}`;
+  }
+  return attachmentUrl;
+}
+
 // Google Calendar URL generator
 function generateGoogleCalendarUrl(booking: TeacherBooking, timezone?: string) {
   const startDate = new Date(`${booking.date}T${booking.time}:00`);
@@ -1385,17 +1395,17 @@ export function TeacherDashboard() {
                                     {msg.attachment && msg.attachmentType === "image" && (
                                       <div className="mb-2">
                                         <img
-                                          src={msg.attachment}
+                                          src={getFileUrl(msg.attachment)}
                                           alt={msg.attachmentName || "Image"}
                                           className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer"
-                                          onClick={() => window.open(msg.attachment, "_blank")}
+                                          onClick={() => window.open(getFileUrl(msg.attachment), "_blank")}
                                         />
                                       </div>
                                     )}
                                     {msg.attachment && msg.attachmentType === "voice" && (
                                       <div className="mb-2">
                                         <audio controls className="max-w-full h-8">
-                                          <source src={msg.attachment} />
+                                          <source src={getFileUrl(msg.attachment)} />
                                         </audio>
                                         {msg.attachmentName && (
                                           <p className={`text-[10px] mt-1 ${isOwn ? "text-emerald-200" : "text-slate-400"}`}>
@@ -1408,7 +1418,7 @@ export function TeacherDashboard() {
                                       <div className="mb-2 flex items-center gap-2">
                                         <FileText className="size-4 shrink-0" />
                                         <a
-                                          href={msg.attachment}
+                                          href={getFileUrl(msg.attachment)}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className={`text-sm underline break-all ${isOwn ? "text-emerald-100 hover:text-white" : "text-emerald-600 hover:text-emerald-800"}`}

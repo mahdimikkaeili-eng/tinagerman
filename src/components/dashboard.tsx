@@ -138,6 +138,16 @@ const statusColors: Record<string, string> = {
   reviewed: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 
+// Helper to convert /uploads/xxx to /api/uploads?file=xxx for reliable file serving
+function getFileUrl(attachmentUrl: string): string {
+  if (!attachmentUrl) return attachmentUrl;
+  const filename = attachmentUrl.replace("/uploads/", "");
+  if (filename && !attachmentUrl.startsWith("/api/")) {
+    return `/api/uploads?file=${encodeURIComponent(filename)}`;
+  }
+  return attachmentUrl;
+}
+
 export function Dashboard() {
   const {
     language,
@@ -1347,17 +1357,17 @@ export function Dashboard() {
                                 {msg.attachment && msg.attachmentType === "image" && (
                                   <div className="mb-2">
                                     <img
-                                      src={msg.attachment}
+                                      src={getFileUrl(msg.attachment)}
                                       alt={msg.attachmentName || "Image"}
                                       className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer"
-                                      onClick={() => window.open(msg.attachment, "_blank")}
+                                      onClick={() => window.open(getFileUrl(msg.attachment), "_blank")}
                                     />
                                   </div>
                                 )}
                                 {msg.attachment && msg.attachmentType === "voice" && (
                                   <div className="mb-2">
                                     <audio controls className="max-w-full h-8">
-                                      <source src={msg.attachment} />
+                                      <source src={getFileUrl(msg.attachment)} />
                                     </audio>
                                     {msg.attachmentName && (
                                       <p className={`text-[10px] mt-1 ${isOwn ? "text-emerald-200" : "text-slate-400"}`}>
@@ -1370,7 +1380,7 @@ export function Dashboard() {
                                   <div className="mb-2 flex items-center gap-2">
                                     <FileText className="size-4 shrink-0" />
                                     <a
-                                      href={msg.attachment}
+                                      href={getFileUrl(msg.attachment)}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={`text-sm underline break-all ${isOwn ? "text-emerald-100 hover:text-white" : "text-emerald-600 hover:text-emerald-800"}`}
@@ -1549,12 +1559,12 @@ export function Dashboard() {
                                     {t("attachment", language)}
                                   </div>
                                   {hw.attachment.includes('.pdf') ? (
-                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
+                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
                                       <Download className="size-3" />{t("viewFile", language)}
                                     </a>
                                   ) : (
-                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer">
-                                      <img src={hw.attachment} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
+                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer">
+                                      <img src={getFileUrl(hw.attachment)} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
                                     </a>
                                   )}
                                 </div>
@@ -1568,12 +1578,12 @@ export function Dashboard() {
                                     {t("studentAttachment", language)}
                                   </div>
                                   {hw.studentAttachment.includes('.pdf') ? (
-                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
+                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
                                       <Download className="size-3" />{t("viewFile", language)}
                                     </a>
                                   ) : (
-                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer">
-                                      <img src={hw.studentAttachment} alt="My submission" className="max-h-32 rounded border border-amber-200" />
+                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer">
+                                      <img src={getFileUrl(hw.studentAttachment)} alt="My submission" className="max-h-32 rounded border border-amber-200" />
                                     </a>
                                   )}
                                 </div>
