@@ -50,31 +50,10 @@ export default function Home() {
     );
   }
 
-  // If authenticated but viewing landing page, show landing with a "Back to Dashboard" button
+  // If authenticated but viewing landing page, show landing
   // If not authenticated, show normal landing page
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {isAuthenticated && (
-        <div className="sticky top-0 z-50 bg-emerald-600 text-white px-4 py-2 flex items-center justify-center gap-3 shadow-md">
-          <span className="text-sm font-medium">
-            {language === "en"
-              ? `👋 Hi, ${user?.name || ''}! You're viewing the homepage`
-              : `👋 Hallo, ${user?.name || ''}! Sie sehen die Startseite`
-            }
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white text-emerald-700 border-white hover:bg-emerald-50 text-xs font-semibold"
-            onClick={() => setViewMode('dashboard')}
-          >
-            {user?.role === 'teacher'
-              ? (language === "en" ? "← Back to Teacher Panel" : "← Zum Lehrerpanel")
-              : (language === "en" ? "← Back to My Panel" : "← Zum Dashboard")
-            }
-          </Button>
-        </div>
-      )}
       <Header />
       <main className="flex-1">
         <HeroSection />
