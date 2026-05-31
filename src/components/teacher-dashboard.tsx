@@ -414,7 +414,16 @@ export function TeacherDashboard() {
 
       socketInstance.on("newMessage", (message: ChatMessage) => {
         setChatMessages((prev) => {
+          // Avoid duplicates - check by ID or by matching content+sender+time
           if (prev.some((m) => m.id === message.id)) return prev;
+          // Also check for optimistic messages we already added locally
+          const isDuplicate = prev.some((m) =>
+            m.id.startsWith("temp_") &&
+            m.senderId === message.senderId &&
+            m.content === message.content &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 10000
+          );
+          if (isDuplicate) return prev;
           return [...prev, message];
         });
         if (message.senderId === selectedStudentId) {
@@ -491,6 +500,21 @@ export function TeacherDashboard() {
 
         const { url } = await uploadRes.json();
 
+        // Add message to UI immediately (optimistic)
+        const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const optimisticMsg: ChatMessage = {
+          id: tempId,
+          senderId: user.id,
+          receiverId: selectedStudentId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType: pendingAttachment.type,
+          attachmentName: pendingAttachment.file.name,
+          createdAt: new Date().toISOString(),
+          isRead: false,
+        };
+        setChatMessages((prev) => [...prev, optimisticMsg]);
+
         const messageData = {
           receiverId: selectedStudentId,
           content: chatInput.trim() || "",
@@ -527,7 +551,18 @@ export function TeacherDashboard() {
         }
       }
     } else {
-      // Text-only message
+      // Text-only message - add to UI immediately (optimistic)
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const optimisticMsg: ChatMessage = {
+        id: tempId,
+        senderId: user.id,
+        receiverId: selectedStudentId,
+        content: chatInput.trim(),
+        createdAt: new Date().toISOString(),
+        isRead: false,
+      };
+      setChatMessages((prev) => [...prev, optimisticMsg]);
+
       socket.emit("sendMessage", {
         receiverId: selectedStudentId,
         content: chatInput.trim(),
