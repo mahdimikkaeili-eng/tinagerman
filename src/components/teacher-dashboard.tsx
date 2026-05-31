@@ -34,6 +34,8 @@ import {
   Download,
   FileText,
   Image as ImageIcon,
+  X,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -199,6 +201,11 @@ export function TeacherDashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const [socket, setSocket] = useState<ReturnType<typeof import("socket.io-client").io> | null>(null);
   const [chatAttachmentUploading, setChatAttachmentUploading] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    file: File;
+    previewUrl: string;
+    type: string; // 'image' | 'voice' | 'file'
+  } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -461,89 +468,111 @@ export function TeacherDashboard() {
     }
   };
 
-  // Send message
-  const handleSendMessage = useCallback(() => {
-    if (!chatInput.trim() || !socket || !selectedStudentId || !user) return;
-    socket.emit("sendMessage", {
-      receiverId: selectedStudentId,
-      content: chatInput.trim(),
-    });
-    fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        senderId: user.id,
+  // Send message (with optional pending attachment)
+  const handleSendMessage = useCallback(async () => {
+    if ((!chatInput.trim() && !pendingAttachment) || !socket || !selectedStudentId || !user) return;
+
+    // If there's a pending attachment, upload it first
+    if (pendingAttachment) {
+      setChatAttachmentUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", pendingAttachment.file);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Upload failed");
+        }
+
+        const { url } = await uploadRes.json();
+
+        const messageData = {
+          receiverId: selectedStudentId,
+          content: chatInput.trim() || "",
+          attachment: url,
+          attachmentType: pendingAttachment.type,
+          attachmentName: pendingAttachment.file.name,
+        };
+
+        // Send via socket
+        socket.emit("sendMessage", messageData);
+
+        // Persist via API
+        fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            senderId: user.id,
+            receiverId: selectedStudentId,
+            content: chatInput.trim() || "",
+            attachment: url,
+            attachmentType: pendingAttachment.type,
+            attachmentName: pendingAttachment.file.name,
+          }),
+        }).catch(console.error);
+
+        setPendingAttachment(null);
+        setChatInput("");
+      } catch {
+        // silently fail
+      } finally {
+        setChatAttachmentUploading(false);
+        if (chatFileInputRef.current) {
+          chatFileInputRef.current.value = "";
+        }
+      }
+    } else {
+      // Text-only message
+      socket.emit("sendMessage", {
         receiverId: selectedStudentId,
         content: chatInput.trim(),
-      }),
-    }).catch(console.error);
-    setChatInput("");
-  }, [chatInput, socket, selectedStudentId, user]);
-
-  // Handle chat file attachment upload
-  const handleChatFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !socket || !selectedStudentId || !user) return;
-
-    setChatAttachmentUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
       });
-
-      if (!uploadRes.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const { url } = await uploadRes.json();
-
-      // Determine attachment type
-      let attachmentType = "file";
-      if (file.type.startsWith("image/")) {
-        attachmentType = "image";
-      } else if (file.type.startsWith("audio/")) {
-        attachmentType = "voice";
-      }
-
-      const messageData = {
-        receiverId: selectedStudentId,
-        content: chatInput.trim() || "",
-        attachment: url,
-        attachmentType,
-        attachmentName: file.name,
-      };
-
-      // Send via socket
-      socket.emit("sendMessage", messageData);
-
-      // Persist via API
       fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           senderId: user.id,
           receiverId: selectedStudentId,
-          content: chatInput.trim() || "",
-          attachment: url,
-          attachmentType,
-          attachmentName: file.name,
+          content: chatInput.trim(),
         }),
       }).catch(console.error);
-
       setChatInput("");
-    } catch {
-      // silently fail
-    } finally {
-      setChatAttachmentUploading(false);
-      // Reset file input
-      if (chatFileInputRef.current) {
-        chatFileInputRef.current.value = "";
-      }
+    }
+  }, [chatInput, socket, selectedStudentId, user, pendingAttachment]);
+
+  // Handle chat file selection (show preview, don't upload yet)
+  const handleChatFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Determine attachment type
+    let attachmentType = "file";
+    if (file.type.startsWith("image/")) {
+      attachmentType = "image";
+    } else if (file.type.startsWith("audio/")) {
+      attachmentType = "voice";
+    }
+
+    // Create preview URL for images
+    let previewUrl = "";
+    if (attachmentType === "image") {
+      previewUrl = URL.createObjectURL(file);
+    }
+
+    setPendingAttachment({
+      file,
+      previewUrl,
+      type: attachmentType,
+    });
+
+    // Reset file input so the same file can be selected again
+    if (chatFileInputRef.current) {
+      chatFileInputRef.current.value = "";
     }
   };
 
@@ -1460,14 +1489,53 @@ export function TeacherDashboard() {
                         )}
                       </ScrollArea>
                     </CardContent>
-                    <div className="p-3 border-t border-slate-200">
-                      <div className="flex gap-2 items-center">
+                    <div className="border-t border-slate-200 bg-white">
+                      {/* Pending attachment preview */}
+                      {pendingAttachment && (
+                        <div className="px-3 pt-3 pb-1">
+                          <div className="relative inline-flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 max-w-[280px]">
+                            {pendingAttachment.type === "image" && pendingAttachment.previewUrl ? (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={pendingAttachment.previewUrl}
+                                  alt="Preview"
+                                  className="size-12 rounded-lg object-cover"
+                                />
+                                <span className="text-xs text-slate-600 truncate max-w-[140px]">{pendingAttachment.file.name}</span>
+                              </div>
+                            ) : pendingAttachment.type === "voice" ? (
+                              <div className="flex items-center gap-2">
+                                <Mic className="size-5 text-emerald-600 shrink-0" />
+                                <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <FileText className="size-5 text-amber-600 shrink-0" />
+                                <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPendingAttachment(null);
+                                if (pendingAttachment.previewUrl) {
+                                  URL.revokeObjectURL(pendingAttachment.previewUrl);
+                                }
+                              }}
+                              className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-slate-400 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2 items-center p-3">
                         <input
                           ref={chatFileInputRef}
                           type="file"
                           accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
                           className="hidden"
-                          onChange={handleChatFileUpload}
+                          onChange={handleChatFileSelect}
                         />
                         <Button
                           type="button"
@@ -1494,10 +1562,20 @@ export function TeacherDashboard() {
                               handleSendMessage();
                             }
                           }}
-                          className="flex-1"
+                          className="flex-1 rounded-full bg-slate-50 border-slate-200 focus:border-emerald-400 focus:ring-emerald-400/20"
+                          disabled={chatLoading || chatAttachmentUploading}
                         />
-                        <Button size="icon" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSendMessage} disabled={!chatInput.trim()}>
-                          <Send className="size-4" />
+                        <Button
+                          size="icon"
+                          className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                          onClick={handleSendMessage}
+                          disabled={(!chatInput.trim() && !pendingAttachment) || chatLoading || chatAttachmentUploading}
+                        >
+                          {chatAttachmentUploading ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Send className="size-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
