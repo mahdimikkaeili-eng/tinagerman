@@ -65,6 +65,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface TeacherBooking {
   id: string;
@@ -256,6 +264,16 @@ export function TeacherDashboard() {
   const [feedbackInput, setFeedbackInput] = useState<Record<string, string>>({});
   const [submittingHomeworkId, setSubmittingHomeworkId] = useState<string | null>(null);
   const [assigningHomework, setAssigningHomework] = useState(false);
+
+  // Reschedule dialog
+  const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+
+  // Chat edit/delete
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   // Load reviews
   useEffect(() => {
@@ -452,6 +470,94 @@ export function TeacherDashboard() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  // Handle reschedule
+  const handleOpenReschedule = (booking: TeacherBooking) => {
+    setRescheduleBookingId(booking.id);
+    setRescheduleDate(booking.date);
+    setRescheduleTime(booking.time);
+    setRescheduleLoading(false);
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleBookingId || !rescheduleDate || !rescheduleTime) return;
+    setRescheduleLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/${rescheduleBookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ date: rescheduleDate, time: rescheduleTime }),
+      });
+      if (res.ok) {
+        // Refresh bookings
+        const bookingsRes = await fetch("/api/teacher/bookings");
+        if (bookingsRes.ok) {
+          const data = await bookingsRes.json();
+          setBookings(data.bookings || []);
+          setStats(data.stats);
+        }
+        setRescheduleBookingId(null);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setRescheduleLoading(false);
+    }
+  };
+
+  // Handle delete homework
+  const handleDeleteHomework = async (homeworkId: string) => {
+    if (!confirm(language === "en" ? "Are you sure you want to delete this homework?" : "Sind Sie sicher, dass Sie diese Hausaufgabe löschen möchten?")) return;
+    try {
+      const res = await fetch(`/api/homework/${homeworkId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setTeacherHomework((prev) => prev.filter((hw) => hw.id !== homeworkId));
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  // Handle delete message
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const res = await fetch(`/api/messages/${messageId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  // Handle edit message
+  const handleEditMessage = async (messageId: string) => {
+    if (!editingContent.trim()) return;
+    try {
+      const res = await fetch(`/api/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content: editingContent.trim() }),
+      });
+      if (res.ok) {
+        setChatMessages((prev) =>
+          prev.map((m) => m.id === messageId ? { ...m, content: editingContent.trim() } : m)
+        );
+        setEditingMessageId(null);
+        setEditingContent("");
+      }
+    } catch {
+      // silently fail
+    }
+  };
 
   // Handle booking status update
   const handleUpdateBooking = async (bookingId: string, status: string) => {
@@ -1336,6 +1442,12 @@ export function TeacherDashboard() {
                                 </Button>
                               )}
                               {(booking.status === "pending" || booking.status === "confirmed") && (
+                                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => handleOpenReschedule(booking)}>
+                                  <CalendarPlus className="size-3 mr-1" />
+                                  {language === "en" ? "Reschedule" : "Verschieben"}
+                                </Button>
+                              )}
+                              {(booking.status === "pending" || booking.status === "confirmed") && (
                                 <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50" onClick={() => handleUpdateBooking(booking.id, "cancelled")} disabled={updatingBookingId === booking.id}>
                                   {updatingBookingId === booking.id ? <Loader2 className="size-3 animate-spin" /> : <XCircle className="size-3 mr-1" />}
                                   {t("cancelBookingAction", language)}
@@ -1454,7 +1566,7 @@ export function TeacherDashboard() {
                               const isOwn = msg.senderId === user?.id;
                               return (
                                 <div key={msg.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isOwn ? "bg-emerald-600 text-white rounded-br-md" : "bg-slate-100 text-slate-800 rounded-bl-md"}`}>
+                                  <div className={`group max-w-[80%] rounded-2xl px-4 py-2.5 ${isOwn ? "bg-emerald-600 text-white rounded-br-md" : "bg-slate-100 text-slate-800 rounded-bl-md"}`}>
                                     {/* Attachment rendering */}
                                     {msg.attachment && msg.attachmentType === "image" && (
                                       <div className="mb-2">
@@ -1504,6 +1616,35 @@ export function TeacherDashboard() {
                                         </span>
                                       )}
                                     </div>
+                                    {isOwn && !msg.id.startsWith("temp_") && (
+                                      <div className="flex items-center gap-2 mt-1 justify-end">
+                                        {editingMessageId === msg.id ? (
+                                          <>
+                                            <Input
+                                              value={editingContent}
+                                              onChange={(e) => setEditingContent(e.target.value)}
+                                              className="h-7 text-xs bg-white/10 border-emerald-400/50"
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter") handleEditMessage(msg.id);
+                                                if (e.key === "Escape") { setEditingMessageId(null); setEditingContent(""); }
+                                              }}
+                                              autoFocus
+                                            />
+                                            <button onClick={() => handleEditMessage(msg.id)} className="text-[10px] text-emerald-200 hover:text-white">✓</button>
+                                            <button onClick={() => { setEditingMessageId(null); setEditingContent(""); }} className="text-[10px] text-emerald-200 hover:text-white">✗</button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <button onClick={() => { setEditingMessageId(msg.id); setEditingContent(msg.content); }} className="text-[10px] text-emerald-200 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                              {language === "en" ? "Edit" : "Bearbeiten"}
+                                            </button>
+                                            <button onClick={() => handleDeleteMessage(msg.id)} className="text-[10px] text-emerald-200 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              {language === "en" ? "Delete" : "Löschen"}
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -1836,11 +1977,11 @@ export function TeacherDashboard() {
                           {newHomework.attachment ? (
                             <div className="relative border-2 border-emerald-300 rounded-xl p-3 bg-emerald-50/50">
                               <div className="flex items-start gap-3">
-                                {newHomework.attachment.includes('.pdf') ? (
+                                {newHomework.attachment.includes('.pdf') || newHomework.attachment.includes('.doc') || newHomework.attachment.includes('.txt') ? (
                                   <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-slate-200 flex-1">
                                     <Paperclip className="size-5 text-red-500" />
-                                    <span className="text-sm text-slate-700 font-medium">PDF Document</span>
-                                    <a href={newHomework.attachment} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline ml-auto">{t("viewFile", language)}</a>
+                                    <span className="text-sm text-slate-700 font-medium">{newHomework.attachment.includes('.pdf') ? 'PDF' : newHomework.attachment.includes('.doc') ? 'Word' : 'Text'} Document</span>
+                                    <a href={getFileUrl(newHomework.attachment)} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline ml-auto">{t("viewFile", language)}</a>
                                   </div>
                                 ) : (
                                   <div className="flex-1">
@@ -1870,7 +2011,7 @@ export function TeacherDashboard() {
                                 if (homeworkUploading) return;
                                 const input = document.createElement('input');
                                 input.type = 'file';
-                                input.accept = 'image/*,.pdf';
+                                input.accept = 'image/*,.pdf,.doc,.docx,.txt';
                                 input.onchange = async (e) => {
                                   const file = (e.target as HTMLInputElement).files?.[0];
                                   if (!file) return;
@@ -1897,7 +2038,7 @@ export function TeacherDashboard() {
                                 if (homeworkUploading) return;
                                 const file = e.dataTransfer.files?.[0];
                                 if (!file) return;
-                                if (!file.type.startsWith('image/') && file.type !== 'application/pdf') return;
+                                if (!file.type.startsWith('image/') && file.type !== 'application/pdf' && file.type !== 'application/msword' && file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && file.type !== 'text/plain') return;
                                 setHomeworkUploading(true);
                                 const formData = new FormData();
                                 formData.append('file', file);
@@ -1979,6 +2120,9 @@ export function TeacherDashboard() {
                                 <Badge variant="outline" className={homeworkStatusColors[hw.status] || "bg-slate-100 text-slate-600"}>
                                   {t(hw.status as "assigned" | "submitted" | "reviewed", language)}
                                 </Badge>
+                                <Button size="sm" variant="ghost" className="text-slate-400 hover:text-red-600 shrink-0 ml-auto" onClick={() => handleDeleteHomework(hw.id)}>
+                                  <Trash2 className="size-4" />
+                                </Button>
                               </div>
                               <p className="text-sm text-slate-500 mt-1 line-clamp-2">{hw.description}</p>
                               {hw.dueDate && (
@@ -1993,13 +2137,13 @@ export function TeacherDashboard() {
                                     <Paperclip className="size-3" />
                                     {t("attachment", language)}
                                   </div>
-                                  {hw.attachment.includes('.pdf') ? (
-                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
-                                      <Download className="size-3" />{t("viewFile", language)}
+                                  {hw.attachment.includes('.pdf') || hw.attachment.includes('.doc') || hw.attachment.includes('.txt') ? (
+                                    <a href={getFileUrl(hw.attachment)} download className="text-sm text-blue-700 underline flex items-center gap-1">
+                                      <Download className="size-3" />{t("downloadFile", language) || "Download"}
                                     </a>
                                   ) : (
-                                    <a href={hw.attachment} target="_blank" rel="noopener noreferrer">
-                                      <img src={hw.attachment} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
+                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer">
+                                      <img src={getFileUrl(hw.attachment)} alt="Attachment" className="max-h-32 rounded border border-blue-200" />
                                     </a>
                                   )}
                                 </div>
@@ -2010,13 +2154,13 @@ export function TeacherDashboard() {
                                     <ImageIcon className="size-3" />
                                     {t("studentAttachment", language)}
                                   </div>
-                                  {hw.studentAttachment.includes('.pdf') ? (
-                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
-                                      <Download className="size-3" />{t("viewFile", language)}
+                                  {hw.studentAttachment.includes('.pdf') || hw.studentAttachment.includes('.doc') || hw.studentAttachment.includes('.txt') ? (
+                                    <a href={getFileUrl(hw.studentAttachment)} download className="text-sm text-amber-700 underline flex items-center gap-1">
+                                      <Download className="size-3" />{t("downloadFile", language) || "Download"}
                                     </a>
                                   ) : (
-                                    <a href={hw.studentAttachment} target="_blank" rel="noopener noreferrer">
-                                      <img src={hw.studentAttachment} alt="Student submission" className="max-h-32 rounded border border-amber-200" />
+                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer">
+                                      <img src={getFileUrl(hw.studentAttachment)} alt="Student submission" className="max-h-32 rounded border border-amber-200" />
                                     </a>
                                   )}
                                 </div>
@@ -2294,6 +2438,33 @@ export function TeacherDashboard() {
           </main>
         </div>
       </div>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={!!rescheduleBookingId} onOpenChange={(open) => !open && setRescheduleBookingId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "en" ? "Reschedule Lesson" : "Stunde verschieben"}</DialogTitle>
+            <DialogDescription>{language === "en" ? "Choose a new date and time for this lesson." : "Wählen Sie ein neues Datum und eine neue Uhrzeit."}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{language === "en" ? "New Date" : "Neues Datum"}</Label>
+              <Input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === "en" ? "New Time" : "Neue Uhrzeit"}</Label>
+              <Input type="time" value={rescheduleTime} onChange={(e) => setRescheduleTime(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleBookingId(null)}>{language === "en" ? "Cancel" : "Abbrechen"}</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleConfirmReschedule} disabled={!rescheduleDate || !rescheduleTime || rescheduleLoading}>
+              {rescheduleLoading ? <Loader2 className="size-4 animate-spin mr-1" /> : <CalendarPlus className="size-4 mr-1" />}
+              {language === "en" ? "Confirm Reschedule" : "Verschieben bestätigen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

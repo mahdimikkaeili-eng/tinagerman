@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
       'image/gif',
       'image/webp',
       'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'text/plain', // .txt
       'audio/mpeg',
       'audio/webm',
       'audio/ogg',

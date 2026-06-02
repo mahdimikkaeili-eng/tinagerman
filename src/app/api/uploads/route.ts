@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
     const ext = sanitizedFile.split('.').pop()?.toLowerCase()
     const contentTypes: Record<string, string> = {
       pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      txt: 'text/plain',
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
       png: 'image/png',
