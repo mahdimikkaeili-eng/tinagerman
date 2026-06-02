@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// No Google Fonts! Use system fonts for maximum compatibility with Iranian internet.
+// Google Fonts (fonts.googleapis.com / fonts.gstatic.com) are blocked/slow in Iran.
+// System font stack covers all platforms: macOS, Windows, Android, Linux, iOS
 
 export const metadata: Metadata = {
   title: "Deutsch mit Tina — Learn German Online | Personalized 1-on-1 Lessons A1-B2",
@@ -97,7 +90,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // JSON-LD structured data for LocalBusiness / Course
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -223,9 +215,7 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="en" href="https://tinagerman.com" />
         <link rel="alternate" hrefLang="x-default" href="https://tinagerman.com" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
+      <body className="antialiased bg-background text-foreground" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, 'Helvetica Neue', Arial, sans-serif" }}>
         {children}
         <Toaster />
       </body>
