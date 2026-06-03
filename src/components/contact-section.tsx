@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
@@ -70,13 +70,26 @@ export function ContactSection() {
                   {t("contactTelegram", language)}
                 </h3>
                 <p className="text-sm text-slate-500">@Deutschmittintin</p>
-                <Button
-                  className="bg-sky-500 hover:bg-sky-600 text-white shadow-sm mt-2"
-                  onClick={() => window.open("https://t.me/Deutschmittintin", "_blank")}
-                >
-                  <Send className="size-4 mr-1.5" />
-                  {language === "en" ? "Open Telegram" : "Telegram öffnen"}
-                </Button>
+                <div className="flex flex-col gap-2 mt-2 w-full">
+                  <Button
+                    className="bg-sky-500 hover:bg-sky-600 text-white shadow-sm w-full"
+                    onClick={() => {
+                      // Try opening Telegram app directly via deep link (works in Iran)
+                      window.location.href = "tg://resolve?domain=Deutschmittintin"
+                    }}
+                  >
+                    <Send className="size-4 mr-1.5" />
+                    {language === "en" ? "Open Telegram App" : "Telegram App öffnen"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-sky-300 text-sky-600 hover:bg-sky-50 w-full"
+                    onClick={() => window.open("https://web.telegram.org/a/#?tgaddr=tg%3A%2F%2Fresolve%3Fdomain%3DDdeutschmittintin", "_blank")}
+                  >
+                    <Globe className="size-4 mr-1.5" />
+                    {language === "en" ? "Open Telegram Web" : "Telegram Web öffnen"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
