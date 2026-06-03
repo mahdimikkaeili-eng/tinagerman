@@ -201,6 +201,8 @@ export function Dashboard() {
     previewUrl: string;
     type: string; // 'image' | 'voice' | 'file'
   } | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -500,6 +502,41 @@ export function Dashboard() {
     setChatInput(value);
     if (socket && tinaId) {
       socket.emit("typing", { receiverId: tinaId });
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const res = await fetch(`/api/messages/${messageId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleEditMessage = async (messageId: string) => {
+    if (!editingContent.trim()) return;
+    try {
+      const res = await fetch(`/api/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content: editingContent.trim() }),
+      });
+      if (res.ok) {
+        setChatMessages((prev) =>
+          prev.map((m) => m.id === messageId ? { ...m, content: editingContent.trim() } : m)
+        );
+        setEditingMessageId(null);
+        setEditingContent("");
+      }
+    } catch {
+      // silently fail
     }
   };
 
@@ -1411,7 +1448,7 @@ export function Dashboard() {
                               <div
                                 className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                                   isOwn
-                                    ? "bg-emerald-600 text-white rounded-br-md"
+                                    ? "bg-emerald-600 text-white rounded-br-md group"
                                     : "bg-slate-100 text-slate-800 rounded-bl-md"
                                 }`}
                               >
@@ -1478,6 +1515,35 @@ export function Dashboard() {
                                     </span>
                                   )}
                                 </div>
+                                {isOwn && !msg.id.startsWith("temp_") && (
+                                  <div className="flex items-center gap-2 mt-1 justify-end">
+                                    {editingMessageId === msg.id ? (
+                                      <>
+                                        <Input
+                                          value={editingContent}
+                                          onChange={(e) => setEditingContent(e.target.value)}
+                                          className="h-7 text-xs bg-white/10 border-emerald-400/50"
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") handleEditMessage(msg.id);
+                                            if (e.key === "Escape") { setEditingMessageId(null); setEditingContent(""); }
+                                          }}
+                                          autoFocus
+                                        />
+                                        <button onClick={() => handleEditMessage(msg.id)} className="text-[10px] text-emerald-200 hover:text-white">✓</button>
+                                        <button onClick={() => { setEditingMessageId(null); setEditingContent(""); }} className="text-[10px] text-emerald-200 hover:text-white">✗</button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button onClick={() => { setEditingMessageId(msg.id); setEditingContent(msg.content); }} className="text-[10px] text-emerald-200 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                          {language === "en" ? "Edit" : "Bearbeiten"}
+                                        </button>
+                                        <button onClick={() => handleDeleteMessage(msg.id)} className="text-[10px] text-emerald-200 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          {language === "en" ? "Delete" : "Löschen"}
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -1664,7 +1730,7 @@ export function Dashboard() {
                                     {t("attachment", language)}
                                   </div>
                                   {hw.attachment.includes('.pdf') ? (
-                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline flex items-center gap-1">
+                                    <a href={getFileUrl(hw.attachment)} target="_blank" rel="noopener noreferrer" download className="text-sm text-blue-700 underline flex items-center gap-1">
                                       <Download className="size-3" />{t("viewFile", language)}
                                     </a>
                                   ) : (
@@ -1683,7 +1749,7 @@ export function Dashboard() {
                                     {t("studentAttachment", language)}
                                   </div>
                                   {hw.studentAttachment.includes('.pdf') ? (
-                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline flex items-center gap-1">
+                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer" download className="text-sm text-amber-700 underline flex items-center gap-1">
                                       <Download className="size-3" />{t("viewFile", language)}
                                     </a>
                                   ) : (

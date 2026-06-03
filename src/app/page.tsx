@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useAppStore } from "@/store/app-store";
 import { Header } from "@/components/header";
 import { HeroSection } from "@/components/hero-section";
@@ -14,10 +15,33 @@ import { TestimonialsSection } from "@/components/testimonials-section";
 import { ContactSection } from "@/components/contact-section";
 import { FaqSection } from "@/components/faq-section";
 import { Footer } from "@/components/footer";
-import { AuthModal } from "@/components/auth-modal";
-import { Dashboard } from "@/components/dashboard";
-import { TeacherDashboard } from "@/components/teacher-dashboard";
-import { Button } from "@/components/ui/button";
+
+// Lazy-load heavy components that aren't needed immediately
+// Dashboard: ~1900 lines, only needed after login
+const Dashboard = dynamic(
+  () => import("@/components/dashboard").then((m) => ({ default: m.Dashboard })),
+  { ssr: false }
+);
+// TeacherDashboard: ~2300 lines, only needed for teacher after login
+const TeacherDashboard = dynamic(
+  () => import("@/components/teacher-dashboard").then((m) => ({ default: m.TeacherDashboard })),
+  { ssr: false }
+);
+// AuthModal: only needed when user clicks login/signup
+const AuthModal = dynamic(
+  () => import("@/components/auth-modal").then((m) => ({ default: m.AuthModal })),
+  { ssr: false }
+);
+
+// Lazy-load below-the-fold sections to reduce initial JS bundle
+const LazyTeacherSection = dynamic(() => import("@/components/teacher-section").then((m) => ({ default: m.TeacherSection })));
+const LazyPricingSection = dynamic(() => import("@/components/pricing-section").then((m) => ({ default: m.PricingSection })));
+const LazyPlacementTestSection = dynamic(() => import("@/components/placement-test-section").then((m) => ({ default: m.PlacementTestSection })));
+const LazyLearningResourcesSection = dynamic(() => import("@/components/learning-resources-section").then((m) => ({ default: m.LearningResourcesSection })));
+const LazyHowItWorksSection = dynamic(() => import("@/components/how-it-works-section").then((m) => ({ default: m.HowItWorksSection })));
+const LazyTestimonialsSection = dynamic(() => import("@/components/testimonials-section").then((m) => ({ default: m.TestimonialsSection })));
+const LazyContactSection = dynamic(() => import("@/components/contact-section").then((m) => ({ default: m.ContactSection })));
+const LazyFaqSection = dynamic(() => import("@/components/faq-section").then((m) => ({ default: m.FaqSection })));
 
 export default function Home() {
   const { isAuthenticated, user, viewMode, setViewMode, language } = useAppStore();
@@ -57,15 +81,15 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <HeroSection />
-        <TeacherSection />
         <CoursesSection />
-        <PricingSection />
-        <PlacementTestSection />
-        <LearningResourcesSection />
-        <HowItWorksSection />
-        <TestimonialsSection />
-        <ContactSection />
-        <FaqSection />
+        <LazyTeacherSection />
+        <LazyPricingSection />
+        <LazyPlacementTestSection />
+        <LazyLearningResourcesSection />
+        <LazyHowItWorksSection />
+        <LazyTestimonialsSection />
+        <LazyContactSection />
+        <LazyFaqSection />
       </main>
       <Footer />
       <AuthModal />

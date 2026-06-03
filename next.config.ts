@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   output: "standalone",
 
   // بسته‌های خارجی سرور - Server external packages
-  // Prisma باید در محیط standalone به صورت خارجی بارگذاری شود
   serverExternalPackages: ['@prisma/client', 'sharp'],
 
   // تنظیمات تصاویر - Images configuration
@@ -28,6 +27,20 @@ const nextConfig: NextConfig = {
 
   reactStrictMode: false,
 
+  // بهینه‌سازی بسته‌ها — کاهش قابل توجه حجم JS - Optimize package imports
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      'recharts',
+      'date-fns',
+      '@radix-ui/react-icons',
+    ],
+  },
+
+  // فشرده‌سازی - Compression
+  compress: true,
+
   // ریدایرکت‌ها - Redirects
   async redirects() {
     return [
@@ -43,15 +56,25 @@ const nextConfig: NextConfig = {
         destination: 'https://tinagerman.com/:path*',
         permanent: true,
       },
-      // ریدایرکت HTTP به HTTPS handled by server/proxy
     ];
   },
 
-  // هدرهای امنیتی و سئو - Security and SEO headers
+  // هدرهای امنیتی، سئو و کش - Security, SEO and Cache headers
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // کش بلندمدت برای فایل‌های استاتیک Next.js
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // هدرهای امنیتی برای همه صفحات
+        source: '/:path*',
         headers: [
           {
             key: 'X-Content-Type-Options',
