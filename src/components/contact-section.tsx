@@ -69,10 +69,10 @@ export function ContactSection() {
                 <h3 className="text-xl font-bold text-slate-900">
                   {t("contactTelegram", language)}
                 </h3>
-                <p className="text-sm text-slate-500">@deutschmitttina</p>
+                <p className="text-sm text-slate-500">@Deutschmittintin</p>
                 <Button
                   className="bg-sky-500 hover:bg-sky-600 text-white shadow-sm mt-2"
-                  onClick={() => window.open("https://t.me/deutschmitttina", "_blank")}
+                  onClick={() => window.open("https://t.me/Deutschmittintin", "_blank")}
                 >
                   <Send className="size-4 mr-1.5" />
                   {language === "en" ? "Open Telegram" : "Telegram öffnen"}

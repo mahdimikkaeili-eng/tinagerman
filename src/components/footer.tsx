@@ -85,7 +85,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://t.me/deutschmitttina"
+                  href="https://t.me/Deutschmittintin"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-slate-400 hover:text-sky-400 transition-colors"
