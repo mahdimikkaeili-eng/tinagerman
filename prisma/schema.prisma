@@ -66,6 +66,7 @@ model Booking {
 
   user        User     @relation(fields: [userId], references: [id])
   course      Course   @relation(fields: [courseId], references: [id])
+  payment     Payment?
 }
 
 model Message {
@@ -132,4 +133,21 @@ model Notification {
   createdAt  DateTime @default(now())
 
   user       User     @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  bookingId       String   @unique
+  userId          String
+  amount          Float
+  currency        String   @default("USDT")
+  network         String   @default("BEP20")
+  walletAddress   String
+  screenshotUrl   String?
+  status          String   @default("pending") // "pending", "confirmed", "rejected"
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  booking         Booking  @relation(fields: [bookingId], references: [id])
 }

@@ -75,7 +75,7 @@ const translations = {
     // Footer
     footerQuickLinks: "Quick Links",
     footerContact: "Contact",
-    footerCopyright: "© 2024 Deutsch mit Tina. All rights reserved.",
+    footerCopyright: "© 2026 Deutsch mit Tina. All rights reserved.",
 
     // Dashboard
     dashboardTitle: "My Dashboard",
@@ -409,7 +409,7 @@ const translations = {
     // Footer
     footerQuickLinks: "Schnelllinks",
     footerContact: "Kontakt",
-    footerCopyright: "© 2024 Deutsch mit Tina. Alle Rechte vorbehalten.",
+    footerCopyright: "© 2026 Deutsch mit Tina. Alle Rechte vorbehalten.",
 
     // Dashboard
     dashboardTitle: "Mein Dashboard",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import Script from "next/script";
 
 // No Google Fonts! Use system fonts for maximum compatibility with Iranian internet.
 // Google Fonts (fonts.googleapis.com / fonts.gstatic.com) are blocked/slow in Iran.
@@ -218,6 +219,18 @@ export default function RootLayout({
       <body className="antialiased bg-background text-foreground" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, 'Helvetica Neue', Arial, sans-serif" }}>
         {children}
         <Toaster />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-PJWF75ZN62"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-PJWF75ZN62');
+          `}
+        </Script>
       </body>
     </html>
   );

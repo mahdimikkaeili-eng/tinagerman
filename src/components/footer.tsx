@@ -101,9 +101,10 @@ export function Footer() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
           <p>{t("footerCopyright", language)}</p>
-          <p className="text-xs">
-            tinagerman.com
-          </p>
+          <div className="flex items-center gap-4 text-xs">
+            <span>tinagerman.com</span>
+            <a href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
+          </div>
         </div>
       </div>
     </footer>

@@ -239,6 +239,18 @@ export function TeacherDashboard() {
     user: { id: string; name: string; germanLevel: string | null };
   }>>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  // Payments
+  const [payments, setPayments] = useState<Array<{
+    id: string;
+    status: string;
+    amount: number;
+    currency: string;
+    screenshotUrl: string;
+    createdAt: string;
+    booking: { date: string; time: string; user: { name: string; email: string }; course: { title: string } };
+  }>>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [reviewActionId, setReviewActionId] = useState<string | null>(null);
 
   // Homework
@@ -274,6 +286,26 @@ export function TeacherDashboard() {
   // Chat edit/delete
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+
+  // Load payments
+  useEffect(() => {
+    if (activeTab !== "payments") return;
+    setPaymentsLoading(true);
+    fetch("/api/payments", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => { setPayments(data.payments || []); setPaymentsLoading(false); })
+      .catch(() => setPaymentsLoading(false));
+  }, [activeTab]);
+
+  const handlePaymentAction = async (paymentId: string, status: "confirmed" | "rejected") => {
+    await fetch(`/api/payments/${paymentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status }),
+    });
+    setPayments((prev) => prev.map((p) => p.id === paymentId ? { ...p, status } : p));
+  };
 
   // Load reviews
   useEffect(() => {
@@ -1067,6 +1099,7 @@ export function TeacherDashboard() {
     { id: "chat", label: t("chatWithStudents", language), icon: MessageCircle },
     { id: "reviews", label: language === "en" ? "Reviews" : "Bewertungen", icon: Star },
     { id: "schedule", label: t("teacherScheduleTab", language), icon: Clock },
+    { id: "payments", label: language === "en" ? "Payments" : "Zahlungen", icon: DollarSign },
   ];
 
   return (
@@ -1424,7 +1457,7 @@ export function TeacherDashboard() {
                                 {t(booking.status as "pending" | "confirmed" | "completed" | "cancelled", language)}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {booking.meetLink && (
                                 <Button size="sm" variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => window.open(booking.meetLink!, "_blank")}>
                                   <Video className="size-3 mr-1" />
@@ -1671,7 +1704,7 @@ export function TeacherDashboard() {
                         <div className="px-3 pt-3 pb-1">
                           <div className="relative inline-flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 max-w-[280px]">
                             {pendingAttachment.type === "image" && pendingAttachment.previewUrl ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <img
                                   src={pendingAttachment.previewUrl}
                                   alt="Preview"
@@ -1680,12 +1713,12 @@ export function TeacherDashboard() {
                                 <span className="text-xs text-slate-600 truncate max-w-[140px]">{pendingAttachment.file.name}</span>
                               </div>
                             ) : pendingAttachment.type === "voice" ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Mic className="size-5 text-emerald-600 shrink-0" />
                                 <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <FileText className="size-5 text-amber-600 shrink-0" />
                                 <span className="text-xs text-slate-600 truncate max-w-[160px]">{pendingAttachment.file.name}</span>
                               </div>
@@ -2184,7 +2217,7 @@ export function TeacherDashboard() {
                                         placeholder={t("feedbackPlaceholder", language)}
                                         rows={2}
                                       />
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
                                         <Button
                                           size="sm"
                                           className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -2317,7 +2350,7 @@ export function TeacherDashboard() {
                               )}
 
                               {/* Add slot input */}
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Input
                                   type="text"
                                   placeholder="HH:MM"
@@ -2464,6 +2497,73 @@ export function TeacherDashboard() {
             </Button>
           </DialogFooter>
         </DialogContent>
+            {activeTab === "payments" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    {language === "en" ? "Payment Verification" : "Zahlungsüberprüfung"}
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {language === "en" ? "Review and confirm student USDT payments" : "Studentenzahlungen überprüfen und bestätigen"}
+                  </p>
+                </div>
+                {paymentsLoading ? (
+                  <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
+                ) : payments.length === 0 ? (
+                  <Card><CardContent className="py-12 text-center text-slate-400">
+                    {language === "en" ? "No payments yet" : "Noch keine Zahlungen"}
+                  </CardContent></Card>
+                ) : (
+                  <div className="space-y-4">
+                    {payments.map((payment) => (
+                      <Card key={payment.id} className={`border-l-4 ${payment.status === "confirmed" ? "border-l-emerald-500" : payment.status === "rejected" ? "border-l-red-500" : "border-l-amber-500"}`}>
+                        <CardContent className="p-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-slate-900">{payment.booking?.user?.name}</span>
+                                <Badge className={payment.status === "confirmed" ? "bg-emerald-100 text-emerald-700" : payment.status === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}>
+                                  {payment.status === "confirmed" ? "✓ Confirmed" : payment.status === "rejected" ? "✗ Rejected" : "⏳ Pending"}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-slate-500">{payment.booking?.user?.email}</p>
+                              <p className="text-sm text-slate-600">
+                                📅 {payment.booking?.date} at {payment.booking?.time} — {payment.booking?.course?.title}
+                              </p>
+                              <p className="text-sm font-medium text-emerald-700">
+                                💰 {payment.amount} {payment.currency} (BEP20)
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-2 items-end">
+                              {payment.screenshotUrl && (
+                                <a href={payment.screenshotUrl} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                                  <ImageIcon className="size-3" /> View Screenshot
+                                </a>
+                              )}
+                              {payment.status === "pending" && (
+                                <div className="flex gap-2">
+                                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={() => handlePaymentAction(payment.id, "confirmed")}>
+                                    <CheckCircle2 className="size-4 mr-1" />
+                                    {language === "en" ? "Confirm" : "Bestätigen"}
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50"
+                                    onClick={() => handlePaymentAction(payment.id, "rejected")}>
+                                    <XCircle className="size-4 mr-1" />
+                                    {language === "en" ? "Reject" : "Ablehnen"}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
       </Dialog>
     </div>
   );

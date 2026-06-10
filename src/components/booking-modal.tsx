@@ -58,6 +58,7 @@ export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: 
   const [isTrialBooking, setIsTrialBooking] = useState(isTrial);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState("");
   const [error, setError] = useState("");
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [slots, setSlots] = useState<AvailableSlot[]>([]);
@@ -154,6 +155,7 @@ export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: 
         return;
       }
 
+      setCreatedBookingId(data.booking?.id || "");
       setSuccess(true);
     } catch {
       setError("Network error. Please try again.");
@@ -207,11 +209,21 @@ export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: 
               {t("bookingConfirmed", language)}
             </h3>
             <p className="text-sm text-slate-500 text-center">
-              {t("bookingSuccess", language)}
+              {isTrialBooking
+                ? (language === "en" ? "Your free trial lesson is booked! Tina will confirm shortly." : "Ihre kostenlose Probestunde ist gebucht!")
+                : (language === "en" ? "Lesson booked! Please complete your payment to confirm." : "Stunde gebucht! Bitte Zahlung abschließen.")}
             </p>
+            {!isTrialBooking && createdBookingId && (
+              <a href={`/payment?bookingId=${createdBookingId}`} className="w-full">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-base py-5">
+                  💳 {language === "en" ? "Pay with USDT" : "Mit USDT bezahlen"}
+                </Button>
+              </a>
+            )}
             <Button
+              variant="outline"
               onClick={() => onOpenChange(false)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="w-full"
             >
               {t("close", language)}
             </Button>
