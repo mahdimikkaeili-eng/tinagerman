@@ -200,6 +200,7 @@ export function TeacherDashboard() {
   // Students
   const [students, setStudents] = useState<TeacherStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
 
   // Chat
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -1505,47 +1506,131 @@ export function TeacherDashboard() {
             {/* STUDENTS TAB */}
             {activeTab === "students" && (
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-slate-900">{t("teacherStudentsTab", language)}</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-slate-900">{t("teacherStudentsTab", language)}</h2>
+                  <span className="text-sm text-slate-500">{students.length} {language === "en" ? "students" : "Schüler"}</span>
+                </div>
                 {studentsLoading ? (
                   <div className="flex justify-center py-12"><Loader2 className="size-8 animate-spin text-emerald-600" /></div>
                 ) : students.length === 0 ? (
                   <Card><CardContent className="py-12 text-center"><p className="text-slate-400">{t("noStudentsYet", language)}</p></CardContent></Card>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-3">
                     {students.map((student) => (
-                      <Card key={student.id} className="hover:border-emerald-300 transition-colors">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Avatar className="size-10 bg-emerald-100">
+                      <Card key={student.id} className="overflow-hidden">
+                        <CardContent className="p-0">
+                          {/* Student Header - Click to expand */}
+                          <div
+                            className="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                            onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}
+                          >
+                            <Avatar className="size-10 bg-emerald-100 flex-shrink-0">
                               <AvatarFallback className="bg-emerald-100 text-emerald-700 text-sm font-semibold">
                                 {student.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate">{student.name}</p>
-                              <p className="text-xs text-slate-500 truncate">{student.email}</p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-semibold text-slate-900">{student.name}</p>
+                                <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                                  {student.germanLevel || "—"}
+                                </Badge>
+                                {student.isTrialUsed && (
+                                  <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-500">
+                                    {language === "en" ? "Trial used" : "Probe genutzt"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500">{student.email}</p>
                             </div>
+                            {/* Stats */}
+                            <div className="hidden sm:flex items-center gap-4 text-center">
+                              <div>
+                                <p className="text-lg font-bold text-emerald-600">{(student as any).completedCount || 0}</p>
+                                <p className="text-[10px] text-slate-400">{language === "en" ? "Completed" : "Abgeschlossen"}</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-bold text-blue-600">{(student as any).confirmedCount || 0}</p>
+                                <p className="text-[10px] text-slate-400">{language === "en" ? "Upcoming" : "Bevorstehend"}</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-bold text-slate-700">{(student as any).bookingCount || 0}</p>
+                                <p className="text-[10px] text-slate-400">{language === "en" ? "Total" : "Gesamt"}</p>
+                              </div>
+                            </div>
+                            <ChevronRight className={`size-4 text-slate-400 transition-transform flex-shrink-0 ${expandedStudentId === student.id ? "rotate-90" : ""}`} />
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="bg-slate-50 rounded-lg p-2">
-                              <p className="text-slate-400">{t("nativeLanguage", language)}</p>
-                              <p className="font-medium text-slate-700">{nativeLanguages[student.nativeLanguage || "other"] || student.nativeLanguage || "—"}</p>
+
+                          {/* Expanded Session History */}
+                          {expandedStudentId === student.id && (
+                            <div className="border-t border-slate-100">
+                              {/* Summary stats */}
+                              <div className="grid grid-cols-4 gap-0 border-b border-slate-100">
+                                <div className="p-3 text-center border-r border-slate-100">
+                                  <p className="text-base font-bold text-emerald-600">{(student as any).completedCount || 0}</p>
+                                  <p className="text-[10px] text-slate-400">{language === "en" ? "Completed" : "Abgeschlossen"}</p>
+                                </div>
+                                <div className="p-3 text-center border-r border-slate-100">
+                                  <p className="text-base font-bold text-blue-600">{(student as any).confirmedCount || 0}</p>
+                                  <p className="text-[10px] text-slate-400">{language === "en" ? "Upcoming" : "Bevorstehend"}</p>
+                                </div>
+                                <div className="p-3 text-center border-r border-slate-100">
+                                  <p className="text-base font-bold text-slate-700">{(student as any).bookingCount || 0}</p>
+                                  <p className="text-[10px] text-slate-400">{language === "en" ? "Total" : "Gesamt"}</p>
+                                </div>
+                                <div className="p-3 text-center">
+                                  <p className="text-[11px] font-medium text-slate-700">{(student as any).firstLessonDate || "—"}</p>
+                                  <p className="text-[10px] text-slate-400">{language === "en" ? "First lesson" : "Erste Stunde"}</p>
+                                </div>
+                              </div>
+
+                              {/* Session history list */}
+                              <div className="p-4">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                                  {language === "en" ? "Session History" : "Sitzungsverlauf"}
+                                </p>
+                                {(student as any).bookings?.length === 0 ? (
+                                  <p className="text-sm text-slate-400 text-center py-4">
+                                    {language === "en" ? "No sessions yet" : "Noch keine Sitzungen"}
+                                  </p>
+                                ) : (
+                                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                                    {(student as any).bookings?.map((booking: any) => (
+                                      <div key={booking.id} className="flex items-center justify-between text-sm py-2 border-b border-slate-50 last:border-0">
+                                        <div className="flex items-center gap-3">
+                                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                            booking.status === "completed" ? "bg-emerald-500" :
+                                            booking.status === "confirmed" ? "bg-blue-500" :
+                                            booking.status === "cancelled" ? "bg-red-400" :
+                                            "bg-amber-400"
+                                          }`} />
+                                          <div>
+                                            <span className="text-slate-700 font-medium">{booking.date}</span>
+                                            <span className="text-slate-400 mx-1">·</span>
+                                            <span className="text-slate-500">{booking.time}</span>
+                                            {booking.isTrial && (
+                                              <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Trial</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] text-slate-400">{booking.course?.level}</span>
+                                          <Badge variant="outline" className={`text-[10px] ${
+                                            booking.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                            booking.status === "confirmed" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                            booking.status === "cancelled" ? "bg-red-50 text-red-600 border-red-200" :
+                                            "bg-amber-50 text-amber-700 border-amber-200"
+                                          }`}>
+                                            {booking.status}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="bg-slate-50 rounded-lg p-2">
-                              <p className="text-slate-400">{t("germanLevel", language)}</p>
-                              <p className="font-medium text-slate-700">{student.germanLevel || "—"}</p>
-                            </div>
-                            <div className="bg-slate-50 rounded-lg p-2">
-                              <p className="text-slate-400">{t("numberOfBookings", language)}</p>
-                              <p className="font-medium text-slate-700">{student.bookingCount}</p>
-                            </div>
-                            <div className="bg-slate-50 rounded-lg p-2">
-                              <p className="text-slate-400">{language === "en" ? "Trial" : "Probestunde"}</p>
-                              <Badge variant="outline" className={student.isTrialUsed ? "bg-slate-100 text-slate-500 text-[10px]" : "bg-emerald-100 text-emerald-700 text-[10px]"}>
-                                {student.isTrialUsed ? (language === "en" ? "Used" : "Genutzt") : (language === "en" ? "Available" : "Verfügbar")}
-                              </Badge>
-                            </div>
-                          </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
