@@ -1208,6 +1208,32 @@ export function Dashboard() {
             {/* BOOKINGS TAB */}
             {activeDashboardTab === "bookings" && (
               <div className="space-y-6">
+                {/* Stats Summary */}
+                {!bookingsLoading && bookings.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                      <p className="text-2xl font-bold text-slate-800">{bookings.length}</p>
+                      <p className="text-xs text-slate-400 mt-1">{language === "en" ? "Total lessons" : "Gesamt"}</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                      <p className="text-2xl font-bold text-emerald-600">{bookings.filter(b => b.status === "completed").length}</p>
+                      <p className="text-xs text-slate-400 mt-1">{language === "en" ? "Completed" : "Abgeschlossen"}</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                      <p className="text-2xl font-bold text-blue-600">{upcomingBookings.length}</p>
+                      <p className="text-xs text-slate-400 mt-1">{language === "en" ? "Upcoming" : "Bevorstehend"}</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                      <p className="text-sm font-semibold text-slate-700">
+                        {bookings.length > 0
+                          ? new Date(bookings.slice().sort((a,b) => a.date.localeCompare(b.date))[0].date)
+                              .toLocaleDateString(language === "de" ? "de-DE" : "en-US", { day: "numeric", month: "short", year: "numeric" })
+                          : "—"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">{language === "en" ? "First lesson" : "Erste Stunde"}</p>
+                    </div>
+                  </div>
+                )}
                 {/* Upcoming */}
                 <Card>
                   <CardHeader>
@@ -1370,27 +1396,45 @@ export function Dashboard() {
                         {pastBookings.map((booking) => (
                           <div
                             key={booking.id}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-slate-50"
+                            className="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
                           >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-slate-700 truncate">
-                                {language === "de"
-                                  ? booking.course.titleDe
-                                  : booking.course.title}
-                              </p>
-                              <p className="text-xs text-slate-400">
-                                {formatDate(booking.date)} · {formatTime(booking.time)}
-                              </p>
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                booking.status === "completed" ? "bg-emerald-500" :
+                                booking.status === "confirmed" ? "bg-blue-500" :
+                                booking.status === "cancelled" ? "bg-red-400" :
+                                "bg-amber-400"
+                              }`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-700 truncate">
+                                  {language === "de" ? booking.course.titleDe : booking.course.title}
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  {formatDate(booking.date)} · {formatTime(booking.time)}
+                                  {booking.isTrial && (
+                                    <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Trial</span>
+                                  )}
+                                </p>
+                              </div>
                             </div>
-                            <Badge
-                              variant="outline"
-                              className={
-                                statusColors[booking.status] ||
-                                "bg-slate-100 text-slate-600"
-                              }
-                            >
-                              {booking.status}
-                            </Badge>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Badge variant="outline" className="text-[10px]">
+                                {booking.course.level}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className={statusColors[booking.status] || "bg-slate-100 text-slate-600"}
+                              >
+                                {t(booking.status as "pending" | "confirmed" | "completed" | "cancelled", language)}
+                              </Badge>
+                              {booking.status === "pending" && (
+                                <a href={`/payment?bookingId=${booking.id}`}>
+                                  <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-300 cursor-pointer hover:bg-emerald-100">
+                                    💳 {language === "en" ? "Pay" : "Bezahlen"}
+                                  </Badge>
+                                </a>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
