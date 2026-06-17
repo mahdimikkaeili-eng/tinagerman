@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Calendar, Clock, BookOpen, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, BookOpen, Loader2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
