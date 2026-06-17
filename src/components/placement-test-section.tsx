@@ -73,7 +73,7 @@ const questions: QuizQuestion[] = [
   {
     id: 6,
     question: "Kannst du mir ___ helfen? Ich ___ mein Handy gefunden.",
-    options: ["bitte / habe nicht", "mal / bin nicht", "bitte / habe nicht", "kurz / habe nicht"],
+    options: ["bitte / habe nicht", "mal / bin nicht", "doch / habe nicht", "kurz / habe nicht"],
     correctIndex: 2,
     level: "A2",
     levelColor: "text-teal-700",

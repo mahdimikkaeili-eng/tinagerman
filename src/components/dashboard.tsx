@@ -1786,23 +1786,41 @@ export function Dashboard() {
                               )}
 
                               {/* Student's own submitted attachment */}
-                              {hw.studentAttachment && (
+                              {hw.studentAttachment && (() => {
+                                const urls = (() => { try { const p = JSON.parse(hw.studentAttachment!); return Array.isArray(p) ? p : [hw.studentAttachment!]; } catch { return [hw.studentAttachment!]; } })();
+                                return (
                                 <div className="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
                                   <div className="flex items-center gap-1 text-xs text-amber-600 font-medium mb-1">
                                     <ImageIcon className="size-3" />
-                                    {t("studentAttachment", language)}
+                                    {t("studentAttachment", language)} ({urls.length})
                                   </div>
-                                  {hw.studentAttachment.includes('.pdf') ? (
-                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer" download className="text-sm text-amber-700 underline flex items-center gap-1">
-                                      <Download className="size-3" />{t("viewFile", language)}
-                                    </a>
-                                  ) : (
-                                    <a href={getFileUrl(hw.studentAttachment)} target="_blank" rel="noopener noreferrer">
-                                      <img src={getFileUrl(hw.studentAttachment)} alt="My submission" className="max-h-32 rounded border border-amber-200" />
-                                    </a>
-                                  )}
+                                  <div className="space-y-1">
+                                    {urls.map((url: string, i: number) => {
+                                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                                      const isPdf = /\.pdf$/i.test(url);
+                                      const isAudio = /\.(mp3|wav|ogg|m4a)$/i.test(url);
+                                      const isDoc = /\.(doc|docx)$/i.test(url);
+                                      return (
+                                        <div key={i}>
+                                          {isImage ? (
+                                            <a href={getFileUrl(url)} target="_blank" rel="noopener noreferrer">
+                                              <img src={getFileUrl(url)} alt={`File ${i+1}`} className="max-h-24 rounded border border-amber-200" />
+                                            </a>
+                                          ) : isAudio ? (
+                                            <audio controls src={getFileUrl(url)} className="w-full h-8" />
+                                          ) : (
+                                            <a href={getFileUrl(url)} target="_blank" rel="noopener noreferrer" download className="text-sm text-amber-700 underline flex items-center gap-1">
+                                              {isPdf ? <FileText className="size-3" /> : isDoc ? <FileText className="size-3" /> : <Download className="size-3" />}
+                                              {isPdf ? "PDF" : isDoc ? "Word" : "File"} {i+1}
+                                            </a>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              )}
+                                );
+                              })()}
 
                               {/* Feedback */}
                               {hw.feedback && (
@@ -1830,23 +1848,31 @@ export function Dashboard() {
                                       if (studentAttachmentUploading === hw.id) return;
                                       const input = document.createElement('input');
                                       input.type = 'file';
-                                      input.accept = 'image/*,.pdf';
+                                      input.multiple = true;
+                                      input.accept = 'image/*,.pdf,.doc,.docx,.mp3,.wav,.ogg,.m4a';
                                       input.onchange = async (e) => {
-                                        const file = (e.target as HTMLInputElement).files?.[0];
-                                        if (!file) return;
+                                        const files = Array.from((e.target as HTMLInputElement).files || []);
+                                        if (!files.length) return;
                                         setStudentAttachmentUploading(hw.id);
                                         try {
-                                          const formData = new FormData();
-                                          formData.append('file', file);
-                                          const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
-                                          if (uploadRes.ok) {
-                                            const data = await uploadRes.json();
-                                            // Save attachment and submit
+                                          const uploadedUrls: string[] = [];
+                                          for (const file of files) {
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+                                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+                                            if (uploadRes.ok) {
+                                              const data = await uploadRes.json();
+                                              if (data.url) uploadedUrls.push(data.url);
+                                            }
+                                          }
+                                          if (uploadedUrls.length > 0) {
+                                            const existing = hw.studentAttachment ? (() => { try { return JSON.parse(hw.studentAttachment); } catch { return [hw.studentAttachment]; } })() : [];
+                                            const allUrls = [...existing, ...uploadedUrls];
                                             const res = await fetch(`/api/homework/${hw.id}`, {
                                               method: "PATCH",
                                               headers: { "Content-Type": "application/json" },
                                               credentials: "include",
-                                              body: JSON.stringify({ status: "submitted", studentAttachment: data.url }),
+                                              body: JSON.stringify({ status: "submitted", studentAttachment: JSON.stringify(allUrls) }),
                                             });
                                             if (res.ok && user) {
                                               const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
@@ -1868,33 +1894,32 @@ export function Dashboard() {
                                       e.stopPropagation();
                                       e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50');
                                       if (studentAttachmentUploading === hw.id) return;
-                                      const file = e.dataTransfer.files?.[0];
-                                      if (!file) return;
-                                      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') return;
+                                      const files = Array.from(e.dataTransfer.files || []);
+                                      if (!files.length) return;
                                       setStudentAttachmentUploading(hw.id);
-                                      const formData = new FormData();
-                                      formData.append('file', file);
-                                      fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' })
-                                        .then((res) => res.ok ? res.json() : null)
-                                        .then(async (data) => {
-                                          if (data?.url) {
-                                            const res = await fetch(`/api/homework/${hw.id}`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              credentials: "include",
-                                              body: JSON.stringify({ status: "submitted", studentAttachment: data.url }),
-                                            });
-                                            if (res.ok && user) {
-                                              const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
-                                              if (homeworkRes.ok) {
-                                                const hwData = await homeworkRes.json();
-                                                setHomework(hwData.homeworks || hwData.homework || []);
-                                              }
-                                            }
+                                      Promise.all(files.map(async (file) => {
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+                                        if (res.ok) { const d = await res.json(); return d.url; }
+                                        return null;
+                                      })).then(async (urls) => {
+                                        const uploadedUrls = urls.filter(Boolean) as string[];
+                                        if (uploadedUrls.length > 0) {
+                                          const existing = hw.studentAttachment ? (() => { try { return JSON.parse(hw.studentAttachment); } catch { return [hw.studentAttachment]; } })() : [];
+                                          const allUrls = [...existing, ...uploadedUrls];
+                                          const res = await fetch(`/api/homework/${hw.id}`, {
+                                            method: "PATCH",
+                                            headers: { "Content-Type": "application/json" },
+                                            credentials: "include",
+                                            body: JSON.stringify({ status: "submitted", studentAttachment: JSON.stringify(allUrls) }),
+                                          });
+                                          if (res.ok && user) {
+                                            const homeworkRes = await fetch(`/api/homework?studentId=${user.id}`, { credentials: "include" });
+                                            if (homeworkRes.ok) { const hwData = await homeworkRes.json(); setHomework(hwData.homeworks || hwData.homework || []); }
                                           }
-                                        })
-                                        .catch(() => {})
-                                        .finally(() => setStudentAttachmentUploading(null));
+                                        }
+                                      }).catch(() => {}).finally(() => setStudentAttachmentUploading(null));
                                     }}
                                   >
                                     {studentAttachmentUploading === hw.id ? (
@@ -1907,7 +1932,8 @@ export function Dashboard() {
                                         <div className="size-10 rounded-full bg-emerald-100 flex items-center justify-center">
                                           <ImageIcon className="size-5 text-emerald-600" />
                                         </div>
-                                        <p className="text-sm font-semibold text-slate-700">{t("dropImageHere", language)}</p>
+                                        <p className="text-sm font-semibold text-slate-700">{language === "en" ? "Upload files (images, PDF, Word, audio)" : "Dateien hochladen (Bilder, PDF, Word, Audio)"}</p>
+                                        <p className="text-xs text-slate-400">{language === "en" ? "Multiple files supported" : "Mehrere Dateien möglich"}</p>
                                         <p className="text-xs text-emerald-600 hover:text-emerald-700 underline">{t("orClickToUpload", language)}</p>
                                         <p className="text-[11px] text-slate-400">{t("supportedFormats", language)}</p>
                                       </div>

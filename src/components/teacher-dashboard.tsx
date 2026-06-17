@@ -1080,7 +1080,10 @@ export function TeacherDashboard() {
   const weekDays = getWeekDays();
 
   const getBookingsForDay = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
     return bookings.filter((b) => b.date === dateStr && b.status !== "cancelled");
   };
 
@@ -2129,18 +2132,26 @@ export function TeacherDashboard() {
                                 if (homeworkUploading) return;
                                 const input = document.createElement('input');
                                 input.type = 'file';
-                                input.accept = 'image/*,.pdf,.doc,.docx,.txt';
+                                input.multiple = true;
+                                input.accept = 'image/*,.pdf,.doc,.docx,.txt,.mp3,.wav,.ogg,.m4a';
                                 input.onchange = async (e) => {
-                                  const file = (e.target as HTMLInputElement).files?.[0];
-                                  if (!file) return;
+                                  const files = Array.from((e.target as HTMLInputElement).files || []);
+                                  if (!files.length) return;
                                   setHomeworkUploading(true);
                                   try {
-                                    const formData = new FormData();
-                                    formData.append('file', file);
-                                    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
-                                    if (uploadRes.ok) {
-                                      const data = await uploadRes.json();
-                                      setNewHomework((prev) => ({ ...prev, attachment: data.url }));
+                                    const uploadedUrls: string[] = [];
+                                    for (const file of files) {
+                                      const formData = new FormData();
+                                      formData.append('file', file);
+                                      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+                                      if (uploadRes.ok) {
+                                        const data = await uploadRes.json();
+                                        if (data.url) uploadedUrls.push(data.url);
+                                      }
+                                    }
+                                    if (uploadedUrls.length > 0) {
+                                      const existing = newHomework.attachment ? (() => { try { return JSON.parse(newHomework.attachment); } catch { return [newHomework.attachment]; } })() : [];
+                                      setNewHomework((prev) => ({ ...prev, attachment: JSON.stringify([...existing, ...uploadedUrls]) }));
                                     }
                                   } catch { /* silently fail */ }
                                   finally { setHomeworkUploading(false); }
@@ -2154,19 +2165,22 @@ export function TeacherDashboard() {
                                 e.stopPropagation();
                                 e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50');
                                 if (homeworkUploading) return;
-                                const file = e.dataTransfer.files?.[0];
-                                if (!file) return;
-                                if (!file.type.startsWith('image/') && file.type !== 'application/pdf' && file.type !== 'application/msword' && file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && file.type !== 'text/plain') return;
+                                const files = Array.from(e.dataTransfer.files || []);
+                                if (!files.length) return;
                                 setHomeworkUploading(true);
-                                const formData = new FormData();
-                                formData.append('file', file);
-                                fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' })
-                                  .then((res) => res.ok ? res.json() : null)
-                                  .then((data) => {
-                                    if (data?.url) setNewHomework((prev) => ({ ...prev, attachment: data.url }));
-                                  })
-                                  .catch(() => {})
-                                  .finally(() => setHomeworkUploading(false));
+                                Promise.all(files.map(async (file) => {
+                                  const formData = new FormData();
+                                  formData.append('file', file);
+                                  const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+                                  if (res.ok) { const d = await res.json(); return d.url; }
+                                  return null;
+                                })).then((urls) => {
+                                  const uploadedUrls = urls.filter(Boolean) as string[];
+                                  if (uploadedUrls.length > 0) {
+                                    const existing = newHomework.attachment ? (() => { try { return JSON.parse(newHomework.attachment); } catch { return [newHomework.attachment]; } })() : [];
+                                    setNewHomework((prev) => ({ ...prev, attachment: JSON.stringify([...existing, ...uploadedUrls]) }));
+                                  }
+                                }).catch(() => {}).finally(() => setHomeworkUploading(false));
                               }}
                             >
                               {homeworkUploading ? (

@@ -54,6 +54,10 @@ export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: 
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
   const [selectedTime, setSelectedTime] = useState(""); // Always stores Vienna time
   const [isTrialBooking, setIsTrialBooking] = useState(isTrial);
   const [loading, setLoading] = useState(false);
@@ -275,21 +279,79 @@ export function BookingModal({ open, onOpenChange, isTrial = false, timezone }: 
                 </Select>
               </div>
 
-              {/* Date picker */}
+              {/* Date picker - Custom Calendar */}
               <div className="space-y-2">
-                <Label htmlFor="booking-date">{t("selectDate", language)}</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                  <Input
-                    id="booking-date"
-                    type="date"
-                    min={today}
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="pl-9"
-                    required
-                    disabled={loading}
-                  />
+                <Label>{t("selectDate", language)}</Label>
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  {/* Month navigation */}
+                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+                    <button type="button" onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+                      className="p-1 rounded hover:bg-slate-200 transition-colors">
+                      <ChevronLeft className="size-4 text-slate-600" />
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {calendarMonth.toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "long", year: "numeric" })}
+                    </span>
+                    <button type="button" onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+                      className="p-1 rounded hover:bg-slate-200 transition-colors">
+                      <ChevronRight className="size-4 text-slate-600" />
+                    </button>
+                  </div>
+                  {/* Weekday headers */}
+                  <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-100">
+                    {(language === "de" ? ["Mo","Di","Mi","Do","Fr","Sa","So"] : ["Mo","Tu","We","Th","Fr","Sa","Su"]).map(d => (
+                      <div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1">{d}</div>
+                    ))}
+                  </div>
+                  {/* Calendar days */}
+                  <div className="grid grid-cols-7 gap-0 p-2">
+                    {(() => {
+                      const todayDate = new Date();
+                      todayDate.setHours(0,0,0,0);
+                      const year = calendarMonth.getFullYear();
+                      const month = calendarMonth.getMonth();
+                      const firstDay = new Date(year, month, 1);
+                      const lastDay = new Date(year, month + 1, 0);
+                      // Monday-based week: 0=Mon, 6=Sun
+                      let startPad = firstDay.getDay() - 1;
+                      if (startPad < 0) startPad = 6;
+                      const days = [];
+                      for (let i = 0; i < startPad; i++) days.push(null);
+                      for (let d = 1; d <= lastDay.getDate(); d++) days.push(d);
+                      return days.map((d, idx) => {
+                        if (!d) return <div key={`pad-${idx}`} />;
+                        const thisDate = new Date(year, month, d);
+                        thisDate.setHours(0,0,0,0);
+                        const isPast = thisDate < todayDate;
+                        const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                        const isSelected = selectedDate === dateStr;
+                        const isToday = thisDate.getTime() === todayDate.getTime();
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            disabled={isPast || loading}
+                            onClick={() => !isPast && setSelectedDate(dateStr)}
+                            className={`
+                              relative aspect-square flex items-center justify-center text-sm rounded-lg m-0.5 transition-all
+                              ${isSelected ? "bg-emerald-600 text-white font-semibold" :
+                                isToday ? "border-2 border-emerald-500 text-emerald-700 font-semibold hover:bg-emerald-50" :
+                                isPast ? "text-slate-300 cursor-not-allowed" :
+                                "text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer"}
+                            `}
+                          >
+                            {d}
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+                  {selectedDate && (
+                    <div className="px-3 py-2 bg-emerald-50 border-t border-emerald-100 text-xs text-emerald-700 font-medium flex items-center gap-1">
+                      <Calendar className="size-3" />
+                      {new Date(selectedDate + "T00:00:00").toLocaleDateString(language === "de" ? "de-DE" : "en-US", { weekday: "long", day: "numeric", month: "long" })}
+                    </div>
+                  )}
                 </div>
               </div>
 

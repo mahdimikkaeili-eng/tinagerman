@@ -54,10 +54,19 @@ export async function PATCH(
       )
     }
 
+    // Get meetLink if confirming
+    let meetLink = existingBooking.meetLink
+    if (status === 'confirmed' && !meetLink) {
+      try {
+        const config = await db.siteConfig.findUnique({ where: { key: 'defaultMeetLink' } })
+        meetLink = config?.value || ''
+      } catch {}
+    }
+
     // Update booking
     const booking = await db.booking.update({
       where: { id },
-      data: { status },
+      data: { status, ...(meetLink ? { meetLink } : {}) },
       include: {
         user: {
           select: {

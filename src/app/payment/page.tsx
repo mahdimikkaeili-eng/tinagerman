@@ -5,13 +5,28 @@ import { Suspense } from "react";
 
 const WALLET = "0x535735907CB7FBE21Ac54eAf1Dab5a8B33a0121A";
 const NETWORK = "BEP20 (BSC)";
-const AMOUNT = 10;
 
 function PaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const bookingId = searchParams.get("bookingId");
   const [step, setStep] = useState(1);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(res => {
+        setIsLoggedIn(res.ok);
+        setAuthChecked(true);
+        if (!res.ok) {
+          router.push("/");
+        }
+      })
+      .catch(() => { setAuthChecked(true); setIsLoggedIn(false); router.push("/"); });
+  }, [router]);
+  const [amount, setAmount] = useState<string>("");
+  const [amountConfirmed, setAmountConfirmed] = useState(false);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +61,7 @@ function PaymentContent() {
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId, screenshotUrl: screenshot, amount: AMOUNT }),
+        body: JSON.stringify({ bookingId, screenshotUrl: screenshot, amount: parseFloat(amount) || 0 }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -64,6 +79,18 @@ function PaymentContent() {
     navigator.clipboard.writeText(WALLET);
     alert("Wallet address copied!");
   };
+  const copyAmount = () => {
+    navigator.clipboard.writeText(amount);
+    alert("Amount copied!");
+  };
+
+  if (!authChecked) {
+    return (
+      <div style={{ maxWidth: "500px", margin: "4rem auto", padding: "2rem", textAlign: "center", fontFamily: "system-ui, sans-serif" }}>
+        <p style={{ color: "#666" }}>Loading...</p>
+      </div>
+    );
+  }
 
   if (done) {
     return (
@@ -130,7 +157,28 @@ function PaymentContent() {
                 It is free, easy, and safe. You only need USDT (BEP20) tokens.
               </p>
             </div>
-            <button onClick={() => setStep(2)} style={{ background: "#16a34a", color: "white", border: "none", padding: "0.75rem 1.5rem", borderRadius: "8px", cursor: "pointer", fontSize: "1rem", width: "100%" }}>
+            <div style={{ marginBottom: "1rem" }}>
+              <p style={{ fontSize: "14px", color: "#555", marginBottom: "0.5rem" }}>
+                <strong>How much USDT should you send?</strong><br />
+                Enter the amount you agreed with Tina:
+              </p>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  placeholder="e.g. 10"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  style={{ flex: 1, padding: "0.6rem 1rem", border: "1px solid #d1fae5", borderRadius: "8px", fontSize: "1rem", outline: "none" }}
+                />
+                <span style={{ fontWeight: "600", color: "#16a34a" }}>USDT</span>
+              </div>
+            </div>
+            <button
+              onClick={() => { if (parseFloat(amount) > 0) setStep(2); }}
+              disabled={!amount || parseFloat(amount) <= 0}
+              style={{ background: !amount || parseFloat(amount) <= 0 ? "#86efac" : "#16a34a", color: "white", border: "none", padding: "0.75rem 1.5rem", borderRadius: "8px", cursor: !amount || parseFloat(amount) <= 0 ? "not-allowed" : "pointer", fontSize: "1rem", width: "100%" }}>
               I have a wallet → Next
             </button>
           </div>
@@ -143,7 +191,7 @@ function PaymentContent() {
           <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: step > 2 ? "#16a34a" : step === 2 ? "#f0fdf4" : "#f9fafb", border: "2px solid", borderColor: step >= 2 ? "#16a34a" : "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", color: step > 2 ? "white" : step === 2 ? "#16a34a" : "#999", fontWeight: "600", flexShrink: 0 }}>
             {step > 2 ? "✓" : "2"}
           </div>
-          <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Send exactly {AMOUNT} USDT</h2>
+          <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Send exactly {amount} USDT</h2>
         </div>
         {step === 2 && (
           <div>
@@ -166,7 +214,10 @@ function PaymentContent() {
             </div>
             <div style={{ background: "#f0fdf4", borderRadius: "8px", padding: "1rem", marginBottom: "1rem", textAlign: "center" }}>
               <p style={{ fontSize: "13px", color: "#15803d", margin: "0 0 0.5rem 0" }}>Amount to send</p>
-              <p style={{ fontSize: "2rem", fontWeight: "700", color: "#16a34a", margin: 0 }}>{AMOUNT} USDT</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <p style={{ fontSize: "2rem", fontWeight: "700", color: "#16a34a", margin: 0 }}>{amount} USDT</p>
+                <button onClick={copyAmount} style={{ background: "white", border: "1px solid #16a34a", color: "#16a34a", padding: "0.25rem 0.75rem", borderRadius: "6px", cursor: "pointer", fontSize: "12px" }}>Copy</button>
+              </div>
               <p style={{ fontSize: "12px", color: "#15803d", margin: "0.25rem 0 0 0" }}>Network: {NETWORK}</p>
             </div>
             <button onClick={() => setStep(3)} style={{ background: "#16a34a", color: "white", border: "none", padding: "0.75rem 1.5rem", borderRadius: "8px", cursor: "pointer", fontSize: "1rem", width: "100%" }}>
@@ -191,7 +242,7 @@ function PaymentContent() {
             </p>
             <ul style={{ color: "#555", fontSize: "14px", lineHeight: "1.8", paddingLeft: "1.5rem", marginBottom: "1rem" }}>
               <li>The transaction hash (TX ID)</li>
-              <li>The amount: <strong>{AMOUNT} USDT</strong></li>
+              <li>The amount: <strong>{amount} USDT</strong></li>
               <li>Status: <strong>Success</strong> or <strong>Confirmed</strong></li>
             </ul>
             <div style={{ border: "2px dashed #16a34a", borderRadius: "8px", padding: "1.5rem", textAlign: "center", cursor: "pointer", background: "#f0fdf4" }}>
@@ -224,7 +275,7 @@ function PaymentContent() {
             <div style={{ background: "#f0fdf4", borderRadius: "8px", padding: "1rem", marginBottom: "1rem" }}>
               <p style={{ margin: 0, fontSize: "13px", color: "#15803d" }}>
                 ✓ Screenshot uploaded<br />
-                ✓ Amount: {AMOUNT} USDT<br />
+                ✓ Amount: {amount} USDT<br />
                 ✓ Network: {NETWORK}
               </p>
             </div>
