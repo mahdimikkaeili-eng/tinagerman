@@ -67,10 +67,10 @@ const translations = {
 
     // Contact
     contactTitle: "Get in Touch",
-    contactSubtitle: "Message us on WhatsApp or Telegram to book your first lesson",
+    contactSubtitle: "Message us on WhatsApp, Telegram or Email to book your first lesson",
     contactWhatsApp: "WhatsApp",
     contactTelegram: "Telegram",
-    contactNote: "Message us on WhatsApp or Telegram",
+    contactNote: "Message us on WhatsApp, Telegram or Email",
 
     // Footer
     footerQuickLinks: "Quick Links",
@@ -401,10 +401,10 @@ const translations = {
 
     // Contact
     contactTitle: "Kontakt aufnehmen",
-    contactSubtitle: "Schreiben Sie uns auf WhatsApp oder Telegram, um Ihre erste Unterrichtsstunde zu buchen",
+    contactSubtitle: "Schreiben Sie uns auf WhatsApp, Telegram oder per E-Mail, um Ihre erste Unterrichtsstunde zu buchen",
     contactWhatsApp: "WhatsApp",
     contactTelegram: "Telegram",
-    contactNote: "Schreiben Sie uns auf WhatsApp oder Telegram",
+    contactNote: "Schreiben Sie uns auf WhatsApp, Telegram oder per E-Mail",
 
     // Footer
     footerQuickLinks: "Schnelllinks",

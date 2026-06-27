@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useAppStore } from "@/store/app-store";
 import { t } from "@/lib/i18n";
@@ -91,6 +91,16 @@ export function Footer() {
                 >
                   <Send className="size-4" />
                   Telegram
+                </a>
+              </li>
+              <li>
+                
+                <a
+                  href="mailto:tina@tinagerman.com"
+                  className="flex items-center gap-2 text-sm text-slate-400 hover:text-amber-400 transition-colors"
+                >
+                  <Mail className="size-4" />
+                  tina@tinagerman.com
                 </a>
               </li>
             </ul>

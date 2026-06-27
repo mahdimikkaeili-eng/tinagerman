@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageCircle, Send, Globe } from "lucide-react";
+import { MessageCircle, Send, Globe, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
@@ -35,7 +35,7 @@ export function ContactSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.6 }}
-          className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto"
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto"
         >
           {/* WhatsApp */}
           <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
@@ -90,6 +90,26 @@ export function ContactSection() {
                     {language === "en" ? "Open Telegram Web" : "Telegram Web öffnen"}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+          <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+            <Card className="h-full border-amber-200 hover:border-amber-300 hover:shadow-lg transition-all duration-300">
+              <CardContent className="flex flex-col items-center gap-4 py-8">
+                <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center">
+                  <Mail className="size-8 text-amber-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {language === "en" ? "Email" : "E-Mail"}
+                </h3>
+                <p className="text-sm text-slate-500">tina@tinagerman.com</p>
+                <Button
+                  className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm mt-2"
+                  onClick={() => { window.location.href = "mailto:" + "tina" + "@" + "tinagerman.com"; }}
+                >
+                  <Mail className="size-4 mr-1.5" />
+                  {language === "en" ? "Send Email" : "E-Mail senden"}
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
