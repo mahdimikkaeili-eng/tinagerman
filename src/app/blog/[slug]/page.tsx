@@ -38,8 +38,25 @@ export default async function BlogPostPage({ params }: Props) {
     notFound();
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt,
+    author: { "@type": "Person", name: "Tina", jobTitle: "German Teacher" },
+    publisher: { "@type": "Organization", name: "Deutsch mit Tina", url: "https://tinagerman.com" },
+    datePublished: post.publishedAt?.toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    mainEntityOfPage: `https://tinagerman.com/blog/${post.slug}`,
+    ...(post.coverImage ? { image: post.coverImage } : {}),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <article className="max-w-3xl mx-auto px-6 py-12">
         <Link href="/blog" className="text-sm text-emerald-600 hover:text-emerald-700">
           ← All articles
