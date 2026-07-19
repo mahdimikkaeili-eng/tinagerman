@@ -289,6 +289,89 @@ export function TeacherDashboard() {
   const [newLessonCourses, setNewLessonCourses] = useState<Array<{ id: string; level: string; titleEn?: string; title?: string }>>([]);
   const [newLessonLoading, setNewLessonLoading] = useState(false);
 
+  // Blog management
+  const emptyBlogForm = { title: "", excerpt: "", content: "", tags: "", language: "en" };
+  const [blogPosts, setBlogPosts] = useState<Array<{
+    id: string; slug: string; title: string; excerpt: string;
+    status: string; language: string; tags: string | null; publishedAt: string | null;
+  }>>([]);
+  const [blogLoading, setBlogLoading] = useState(false);
+  const [showBlogForm, setShowBlogForm] = useState(false);
+  const [blogForm, setBlogForm] = useState(emptyBlogForm);
+  const [editingBlogSlug, setEditingBlogSlug] = useState<string | null>(null);
+  const [blogSaving, setBlogSaving] = useState(false);
+
+  const loadBlogPosts = useCallback(() => {
+    setBlogLoading(true);
+    fetch("/api/blog?all=true", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setBlogPosts(d.posts || []))
+      .catch(() => {})
+      .finally(() => setBlogLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "blog") return;
+    loadBlogPosts();
+  }, [activeTab, loadBlogPosts]);
+
+  const handleEditBlogPost = async (slug: string) => {
+    const res = await fetch(`/api/blog/${slug}`, { credentials: "include" });
+    if (!res.ok) return;
+    const { post } = await res.json();
+    setBlogForm({
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      tags: post.tags || "",
+      language: post.language || "en",
+    });
+    setEditingBlogSlug(slug);
+    setShowBlogForm(true);
+  };
+
+  const handleSaveBlogPost = async (publish: boolean) => {
+    if (!blogForm.title || !blogForm.excerpt || !blogForm.content) return;
+    setBlogSaving(true);
+    try {
+      const url = editingBlogSlug ? `/api/blog/${editingBlogSlug}` : "/api/blog";
+      const method = editingBlogSlug ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ...blogForm, status: publish ? "published" : "draft" }),
+      });
+      if (res.ok) {
+        setShowBlogForm(false);
+        setBlogForm(emptyBlogForm);
+        setEditingBlogSlug(null);
+        loadBlogPosts();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to save post");
+      }
+    } finally {
+      setBlogSaving(false);
+    }
+  };
+
+  const handleToggleBlogStatus = async (slug: string, currentStatus: string) => {
+    await fetch(`/api/blog/${slug}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status: currentStatus === "published" ? "draft" : "published" }),
+    });
+    loadBlogPosts();
+  };
+
+  const handleDeleteBlogPost = async (slug: string) => {
+    if (!confirm(language === "en" ? "Delete this post permanently?" : "Diesen Beitrag endgültig löschen?")) return;
+    await fetch(`/api/blog/${slug}`, { method: "DELETE", credentials: "include" });
+    loadBlogPosts();
+  };
+
   // Load students + courses when the New Lesson dialog opens
   useEffect(() => {
     if (!newLessonOpen) return;
@@ -1212,6 +1295,7 @@ export function TeacherDashboard() {
     { id: "chat", label: t("chatWithStudents", language), icon: MessageCircle },
     { id: "reviews", label: language === "en" ? "Reviews" : "Bewertungen", icon: Star },
     { id: "schedule", label: t("teacherScheduleTab", language), icon: Clock },
+    { id: "blog", label: "Blog", icon: FileText },
     { id: "payments", label: language === "en" ? "Payments" : "Zahlungen", icon: DollarSign },
   ];
 
@@ -2476,6 +2560,162 @@ export function TeacherDashboard() {
             )}
 
             {/* SCHEDULE TAB */}
+            {activeTab === "blog" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h2 className="text-xl font-bold text-slate-900">Blog</h2>
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => {
+                      setBlogForm(emptyBlogForm);
+                      setEditingBlogSlug(null);
+                      setShowBlogForm(!showBlogForm);
+                    }}
+                  >
+                    <Plus className="size-4 mr-1" />
+                    {language === "en" ? "New Post" : "Neuer Beitrag"}
+                  </Button>
+                </div>
+
+                {showBlogForm && (
+                  <Card className="border-emerald-200 bg-emerald-50/30">
+                    <CardContent className="p-4 sm:p-6 space-y-4">
+                      <div className="space-y-2">
+                        <Label>{language === "en" ? "Title" : "Titel"}</Label>
+                        <Input
+                          value={blogForm.title}
+                          onChange={(e) => setBlogForm((prev) => ({ ...prev, title: e.target.value }))}
+                          placeholder={language === "en" ? "e.g. 5 Tips to Learn German Faster" : "z.B. 5 Tipps zum schnelleren Deutschlernen"}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "en" ? "Excerpt (short summary, shown in Google)" : "Kurzbeschreibung (wird in Google angezeigt)"}</Label>
+                        <Input
+                          value={blogForm.excerpt}
+                          onChange={(e) => setBlogForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+                          maxLength={200}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "en" ? "Content (Markdown supported)" : "Inhalt (Markdown unterstützt)"}</Label>
+                        <textarea
+                          value={blogForm.content}
+                          onChange={(e) => setBlogForm((prev) => ({ ...prev, content: e.target.value }))}
+                          rows={14}
+                          className="w-full rounded-lg border border-slate-200 p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder={"## Heading\n\nYour article text..."}
+                        />
+                      </div>
+                      <div className="flex gap-3 flex-wrap">
+                        <div className="space-y-2 flex-1 min-w-[180px]">
+                          <Label>{language === "en" ? "Tags (comma separated)" : "Tags (kommagetrennt)"}</Label>
+                          <Input
+                            value={blogForm.tags}
+                            onChange={(e) => setBlogForm((prev) => ({ ...prev, tags: e.target.value }))}
+                            placeholder="A1, grammar, tips"
+                          />
+                        </div>
+                        <div className="space-y-2 w-36">
+                          <Label>{language === "en" ? "Language" : "Sprache"}</Label>
+                          <Select value={blogForm.language} onValueChange={(v) => setBlogForm((prev) => ({ ...prev, language: v }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="de">Deutsch</SelectItem>
+                              <SelectItem value="fa">فارسی</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button
+                          onClick={() => handleSaveBlogPost(true)}
+                          disabled={blogSaving || !blogForm.title || !blogForm.excerpt || !blogForm.content}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          {blogSaving ? <Loader2 className="size-4 animate-spin mr-1" /> : <CheckCircle2 className="size-4 mr-1" />}
+                          {language === "en" ? "Publish" : "Veröffentlichen"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleSaveBlogPost(false)}
+                          disabled={blogSaving || !blogForm.title || !blogForm.excerpt || !blogForm.content}
+                        >
+                          {language === "en" ? "Save as Draft" : "Als Entwurf speichern"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setShowBlogForm(false);
+                            setEditingBlogSlug(null);
+                          }}
+                        >
+                          {language === "en" ? "Cancel" : "Abbrechen"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {blogLoading ? (
+                  <div className="flex justify-center py-10"><Loader2 className="size-6 animate-spin text-emerald-600" /></div>
+                ) : blogPosts.length === 0 ? (
+                  <Card><CardContent className="p-8 text-center text-slate-500 italic">
+                    {language === "en" ? "No posts yet. Create your first article!" : "Noch keine Beiträge. Erstellen Sie Ihren ersten Artikel!"}
+                  </CardContent></Card>
+                ) : (
+                  <div className="space-y-3">
+                    {blogPosts.map((post) => (
+                      <Card key={post.id}>
+                        <CardContent className="p-4 flex items-center justify-between gap-3 flex-wrap">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-slate-900 truncate">{post.title}</span>
+                              <Badge
+                                variant="outline"
+                                className={post.status === "published"
+                                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                  : "bg-amber-100 text-amber-700 border-amber-200"}
+                              >
+                                {post.status === "published"
+                                  ? (language === "en" ? "Published" : "Veröffentlicht")
+                                  : (language === "en" ? "Draft" : "Entwurf")}
+                              </Badge>
+                              <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 uppercase">{post.language}</Badge>
+                            </div>
+                            <p className="text-sm text-slate-500 truncate mt-1">{post.excerpt}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {post.status === "published" && (
+                              <a href={`/blog/${post.slug}`} target="_blank" rel="noreferrer" className="text-xs text-emerald-600 hover:underline">
+                                {language === "en" ? "View" : "Ansehen"}
+                              </a>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => handleEditBlogPost(post.slug)}>
+                              {language === "en" ? "Edit" : "Bearbeiten"}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleToggleBlogStatus(post.slug, post.status)}>
+                              {post.status === "published"
+                                ? (language === "en" ? "Unpublish" : "Zurückziehen")
+                                : (language === "en" ? "Publish" : "Veröffentlichen")}
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBlogPost(post.slug)}
+                              className="text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                              <XCircle className="size-4" />
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeTab === "schedule" && (
               <div className="space-y-6">
                 {/* Teaching Schedule Configuration */}

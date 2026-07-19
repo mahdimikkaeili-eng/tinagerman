@@ -151,3 +151,18 @@ model Payment {
 
   booking         Booking  @relation(fields: [bookingId], references: [id])
 }
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  title           String
+  excerpt         String    // short summary for cards + meta description
+  content         String    // markdown
+  coverImage      String?
+  language        String    @default("en") // "en", "de", "fa"
+  tags            String?   // comma separated
+  status          String    @default("draft") // "draft", "published"
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
