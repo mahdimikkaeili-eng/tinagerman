@@ -715,7 +715,7 @@ export function Dashboard() {
 
   const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(":");
-    return `${hours}:${minutes}`;
+    return `${hours}:${minutes} (${language === "de" ? "Wien" : "Vienna"})`;
   };
 
   const formatMessageTime = (dateStr: string) => {

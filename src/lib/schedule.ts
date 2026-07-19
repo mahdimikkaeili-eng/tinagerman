@@ -47,12 +47,43 @@ export async function getSchedule(): Promise<WeekSchedule> {
   return defaultSchedule
 }
 
+export type DateOverrides = Record<string, { slots: string[] }>
+
 /**
- * Get available time slots for a specific date based on the day of the week.
+ * Get date-specific overrides from SiteConfig.
+ * Keys are YYYY-MM-DD dates. An entry fully replaces the weekly
+ * schedule for that date (an empty slots array = day off).
+ */
+export async function getDateOverrides(): Promise<DateOverrides> {
+  try {
+    const config = await db.siteConfig.findUnique({ where: { key: 'dateOverrides' } })
+    if (config?.value) {
+      const parsed = JSON.parse(config.value) as DateOverrides
+      if (parsed && typeof parsed === 'object') {
+        return parsed
+      }
+    }
+  } catch {
+    // Return empty if anything goes wrong
+  }
+  return {}
+}
+
+/**
+ * Get available time slots for a specific date.
+ * A date-specific override (if present) fully replaces the weekly schedule.
  * @param dateStr - Date string in YYYY-MM-DD format
  * @returns Array of time slot strings in HH:mm format (Vienna time)
  */
 export async function getSlotsForDate(dateStr: string): Promise<string[]> {
+  // 1) Date-specific override wins
+  const overrides = await getDateOverrides()
+  const override = overrides[dateStr]
+  if (override && Array.isArray(override.slots)) {
+    return override.slots
+  }
+
+  // 2) Fall back to the weekly schedule
   const schedule = await getSchedule()
   const date = new Date(dateStr + 'T00:00:00')
   const dayOfWeek = date.getDay() // 0=Sunday, 6=Saturday

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Security: prevent directory traversal
     const sanitizedFile = file.replace(/[^a-zA-Z0-9._-]/g, '')
     
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
+    const uploadsDir = '/home/tinagerman/uploads'
     const filePath = join(uploadsDir, sanitizedFile)
 
     // Check file exists

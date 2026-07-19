@@ -40,7 +40,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -282,6 +282,56 @@ export function TeacherDashboard() {
   const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
+
+  // New Lesson (teacher creates a booking)
+  const [newLessonOpen, setNewLessonOpen] = useState(false);
+  const [newLesson, setNewLesson] = useState({ studentId: "", courseId: "", date: "", time: "", notes: "" });
+  const [newLessonCourses, setNewLessonCourses] = useState<Array<{ id: string; level: string; titleEn?: string; title?: string }>>([]);
+  const [newLessonLoading, setNewLessonLoading] = useState(false);
+
+  // Load students + courses when the New Lesson dialog opens
+  useEffect(() => {
+    if (!newLessonOpen) return;
+    if (students.length === 0) {
+      fetch("/api/teacher/students")
+        .then((r) => r.json())
+        .then((d) => setStudents(d.students || []))
+        .catch(() => {});
+    }
+    if (newLessonCourses.length === 0) {
+      fetch("/api/courses?lang=en")
+        .then((r) => r.json())
+        .then((d) => setNewLessonCourses(d.courses || (Array.isArray(d) ? d : [])))
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newLessonOpen]);
+
+  const handleCreateLesson = async () => {
+    if (!newLesson.studentId || !newLesson.courseId || !newLesson.date || !newLesson.time) return;
+    setNewLessonLoading(true);
+    try {
+      const res = await fetch("/api/teacher/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newLesson),
+      });
+      if (res.ok) {
+        setNewLessonOpen(false);
+        setNewLesson({ studentId: "", courseId: "", date: "", time: "", notes: "" });
+        const data = await fetch("/api/teacher/bookings").then((r) => r.json());
+        setBookings(data.bookings || []);
+        if (data.stats) setStats(data.stats);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to create lesson");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setNewLessonLoading(false);
+    }
+  };
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   // Chat edit/delete
@@ -790,6 +840,55 @@ export function TeacherDashboard() {
   const [scheduleSaved, setScheduleSaved] = useState(false);
   const [newSlotInput, setNewSlotInput] = useState<Record<number, string>>({});
 
+  // Date-specific overrides (special dates)
+  const [dateOverrides, setDateOverrides] = useState<Record<string, { slots: string[] }>>({});
+  const [overrideDate, setOverrideDate] = useState("");
+  const [overrideSlotInput, setOverrideSlotInput] = useState("");
+  const [overrideSaving, setOverrideSaving] = useState(false);
+  const [overrideSaved, setOverrideSaved] = useState(false);
+
+  const saveOverrides = async (next: Record<string, { slots: string[] }>) => {
+    setOverrideSaving(true);
+    setOverrideSaved(false);
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ key: "dateOverrides", value: JSON.stringify(next) }),
+      });
+      if (res.ok) {
+        setDateOverrides(next);
+        setOverrideSaved(true);
+        setTimeout(() => setOverrideSaved(false), 3000);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setOverrideSaving(false);
+    }
+  };
+
+  const handleAddOverride = () => {
+    if (!overrideDate) return;
+    const slots = overrideSlotInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+      .map((t) => (t.length === 4 ? "0" + t : t))
+      .sort();
+    const next = { ...dateOverrides, [overrideDate]: { slots } };
+    saveOverrides(next);
+    setOverrideDate("");
+    setOverrideSlotInput("");
+  };
+
+  const handleRemoveOverride = (date: string) => {
+    const next = { ...dateOverrides };
+    delete next[date];
+    saveOverrides(next);
+  };
+
   // Load default meet link and schedule on mount
   useEffect(() => {
     fetch("/api/config", { credentials: "include" })
@@ -797,6 +896,16 @@ export function TeacherDashboard() {
       .then((data) => {
         if (data.config?.defaultMeetLink) {
           setMeetLinkInput(data.config.defaultMeetLink);
+        }
+        if (data.config?.dateOverrides) {
+          try {
+            const parsedOv = JSON.parse(data.config.dateOverrides) as Record<string, { slots: string[] }>;
+            if (parsedOv && typeof parsedOv === "object") {
+              setDateOverrides(parsedOv);
+            }
+          } catch {
+            // use empty
+          }
         }
         if (data.config?.teachingSchedule) {
           try {
@@ -1049,7 +1158,7 @@ export function TeacherDashboard() {
 
   const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(":");
-    return `${hours}:${minutes}`;
+    return `${hours}:${minutes} (${language === "de" ? "Wien" : "Vienna"})`;
   };
 
   const formatMessageTime = (dateStr: string) => {
@@ -1415,6 +1524,10 @@ export function TeacherDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-slate-900">{t("teacherBookingsTab", language)}</h2>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setNewLessonOpen(true)}>
+                    <CalendarPlus className="size-4 mr-1" />
+                    {language === "en" ? "New Lesson" : "Neue Stunde"}
+                  </Button>
                   <Select value={bookingFilter} onValueChange={setBookingFilter}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder={t("allStatuses", language)} />
@@ -2512,6 +2625,110 @@ export function TeacherDashboard() {
                   </CardContent>
                 </Card>
 
+                {/* Special Dates (date-specific overrides) */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{language === "en" ? "Special Dates" : "Besondere Termine"}</CardTitle>
+                    <CardDescription>
+                      {language === "en"
+                        ? "Override the weekly schedule for a specific date. These slots fully replace that day's regular schedule. Leave slots empty to mark a day off."
+                        : "Überschreiben Sie den Wochenplan für ein bestimmtes Datum. Diese Zeitfenster ersetzen den regulären Plan dieses Tages vollständig. Leer lassen = freier Tag."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {Object.keys(dateOverrides).length > 0 && (
+                      <div className="space-y-2">
+                        {Object.entries(dateOverrides)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([date, conf]) => (
+                            <div
+                              key={date}
+                              className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/40 p-3"
+                            >
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="text-sm font-semibold text-slate-900">{date}</span>
+                                {conf.slots.length === 0 ? (
+                                  <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200">
+                                    {language === "en" ? "Day off" : "Freier Tag"}
+                                  </Badge>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {conf.slots.map((slot) => (
+                                      <span
+                                        key={slot}
+                                        className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs text-slate-700"
+                                      >
+                                        <Clock className="size-3 text-amber-500" />
+                                        {slot}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOverride(date)}
+                                className="text-slate-400 hover:text-red-500 transition-colors shrink-0 ml-2"
+                                title={language === "en" ? "Remove" : "Entfernen"}
+                              >
+                                <XCircle className="size-4" />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-end gap-2 flex-wrap">
+                      <div className="space-y-1">
+                        <Label className="text-xs">{language === "en" ? "Date" : "Datum"}</Label>
+                        <Input
+                          type="date"
+                          value={overrideDate}
+                          onChange={(e) => setOverrideDate(e.target.value)}
+                          className="w-40 h-9 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1 flex-1 min-w-[200px]">
+                        <Label className="text-xs">
+                          {language === "en" ? "Slots (comma separated, Vienna time)" : "Zeitfenster (kommagetrennt, Wiener Zeit)"}
+                        </Label>
+                        <Input
+                          type="text"
+                          placeholder="11:00, 14:00"
+                          value={overrideSlotInput}
+                          onChange={(e) => setOverrideSlotInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddOverride();
+                            }
+                          }}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleAddOverride}
+                        disabled={!overrideDate || overrideSaving}
+                        className="bg-amber-500 hover:bg-amber-600 text-white h-9"
+                      >
+                        {overrideSaving ? (
+                          <Loader2 className="size-4 animate-spin mr-1" />
+                        ) : (
+                          <Plus className="size-4 mr-1" />
+                        )}
+                        {language === "en" ? "Add" : "Hinzufügen"}
+                      </Button>
+                      {overrideSaved && (
+                        <span className="text-sm font-medium text-emerald-600 flex items-center gap-1 pb-2">
+                          <CheckCircle2 className="size-4" />
+                          {language === "en" ? "Saved" : "Gespeichert"}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Weekly Calendar View */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -2570,6 +2787,59 @@ export function TeacherDashboard() {
           </main>
         </div>
       </div>
+
+      {/* New Lesson Dialog */}
+      <Dialog open={newLessonOpen} onOpenChange={setNewLessonOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{language === "en" ? "Schedule a Lesson" : "Stunde planen"}</DialogTitle>
+            <DialogDescription>{language === "en" ? "Create a lesson for a student. Past dates are saved as completed lessons." : "Erstellen Sie eine Stunde für einen Schüler. Vergangene Termine werden als abgeschlossen gespeichert."}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{language === "en" ? "Student" : "Schüler"}</Label>
+              <Select value={newLesson.studentId} onValueChange={(v) => setNewLesson((prev) => ({ ...prev, studentId: v }))}>
+                <SelectTrigger><SelectValue placeholder={language === "en" ? "Select student" : "Schüler wählen"} /></SelectTrigger>
+                <SelectContent>
+                  {students.map((st) => (
+                    <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{language === "en" ? "Course" : "Kurs"}</Label>
+              <Select value={newLesson.courseId} onValueChange={(v) => setNewLesson((prev) => ({ ...prev, courseId: v }))}>
+                <SelectTrigger><SelectValue placeholder={language === "en" ? "Select course" : "Kurs wählen"} /></SelectTrigger>
+                <SelectContent>
+                  {newLessonCourses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.level} — {c.titleEn || c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{language === "en" ? "Date" : "Datum"}</Label>
+              <Input type="date" value={newLesson.date} onChange={(e) => setNewLesson((prev) => ({ ...prev, date: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === "en" ? "Time (Vienna)" : "Uhrzeit (Wien)"}</Label>
+              <Input type="time" value={newLesson.time} onChange={(e) => setNewLesson((prev) => ({ ...prev, time: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === "en" ? "Notes (optional)" : "Notizen (optional)"}</Label>
+              <Input value={newLesson.notes} onChange={(e) => setNewLesson((prev) => ({ ...prev, notes: e.target.value }))} placeholder={language === "en" ? "e.g. focus on grammar" : "z.B. Fokus auf Grammatik"} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewLessonOpen(false)}>{language === "en" ? "Cancel" : "Abbrechen"}</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleCreateLesson} disabled={!newLesson.studentId || !newLesson.courseId || !newLesson.date || !newLesson.time || newLessonLoading}>
+              {newLessonLoading ? <Loader2 className="size-4 animate-spin mr-1" /> : <CalendarPlus className="size-4 mr-1" />}
+              {language === "en" ? "Create Lesson" : "Stunde erstellen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reschedule Dialog */}
       <Dialog open={!!rescheduleBookingId} onOpenChange={(open) => !open && setRescheduleBookingId(null)}>

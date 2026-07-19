@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const uniqueName = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`
 
     // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
+    const uploadsDir = '/home/tinagerman/uploads'
     await mkdir(uploadsDir, { recursive: true })
 
     // Write file
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer)
 
     // Return the URL path
-    const url = `/uploads/${uniqueName}`
+    const url = `/api/uploads?file=${uniqueName}`
 
     return NextResponse.json({ url, name: file.name })
   } catch (error) {

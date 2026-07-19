@@ -147,7 +147,7 @@ export function PricingSection() {
                   {/* Price */}
                   <div className="text-center mb-6">
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-4xl font-bold text-slate-900">${plan.price}</span>
+                      <span className="text-4xl font-bold text-slate-900">€{plan.price}</span>
                     </div>
                     <p className="text-sm text-slate-500 mt-1">{plan.priceNote}</p>
                   </div>
