@@ -37,9 +37,11 @@ export default async function BlogPage() {
         <Link href="/" className="text-sm text-emerald-600 hover:text-emerald-700">
           ← Deutsch mit Tina
         </Link>
-        <h1 className="text-4xl font-bold text-slate-900 mt-4 mb-2">Blog</h1>
-        <p className="text-slate-600 mb-10">
-          Tips and guides for learning German — from Tina in Vienna.
+        <h1 className="text-4xl sm:text-5xl font-bold mt-4 mb-3 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+          Blog
+        </h1>
+        <p className="text-slate-600 mb-10 text-lg">
+          Tips and guides for learning German 🇩🇪 — from Tina in Vienna 🇦🇹
         </p>
 
         {posts.length === 0 ? (
@@ -50,15 +52,19 @@ export default async function BlogPage() {
               <Link
                 key={post.slug}
                 href={`/blog/${post.slug}`}
-                className="group rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-lg hover:border-emerald-200 transition-all"
+                className="group rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all duration-300"
               >
-                {post.coverImage && (
+                {post.coverImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={post.coverImage}
                     alt={post.title}
-                    className="w-full h-44 object-cover"
+                    className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
                   />
+                ) : (
+                  <div className="w-full h-44 bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 flex items-center justify-center">
+                    <span className="text-6xl">📚</span>
+                  </div>
                 )}
                 <div className="p-5">
                   <h2 className="text-lg font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
@@ -76,7 +82,7 @@ export default async function BlogPage() {
                       </span>
                     )}
                     {post.tags && (
-                      <span className="text-xs text-emerald-600">
+                      <span className="text-xs font-medium text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-1">
                         {post.tags.split(",")[0].trim()}
                       </span>
                     )}

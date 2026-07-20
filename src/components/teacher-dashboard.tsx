@@ -290,7 +290,7 @@ export function TeacherDashboard() {
   const [newLessonLoading, setNewLessonLoading] = useState(false);
 
   // Blog management
-  const emptyBlogForm = { title: "", excerpt: "", content: "", tags: "", language: "en" };
+  const emptyBlogForm = { title: "", excerpt: "", content: "", tags: "", language: "en", coverImage: "" };
   const [blogPosts, setBlogPosts] = useState<Array<{
     id: string; slug: string; title: string; excerpt: string;
     status: string; language: string; tags: string | null; publishedAt: string | null;
@@ -325,6 +325,7 @@ export function TeacherDashboard() {
       content: post.content,
       tags: post.tags || "",
       language: post.language || "en",
+      coverImage: post.coverImage || "",
     });
     setEditingBlogSlug(slug);
     setShowBlogForm(true);
@@ -2595,6 +2596,14 @@ export function TeacherDashboard() {
                           value={blogForm.excerpt}
                           onChange={(e) => setBlogForm((prev) => ({ ...prev, excerpt: e.target.value }))}
                           maxLength={200}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "en" ? "Cover Image URL (optional — e.g. from unsplash.com)" : "Titelbild-URL (optional — z.B. von unsplash.com)"}</Label>
+                        <Input
+                          value={blogForm.coverImage}
+                          onChange={(e) => setBlogForm((prev) => ({ ...prev, coverImage: e.target.value }))}
+                          placeholder="https://images.unsplash.com/..."
                         />
                       </div>
                       <div className="space-y-2">

@@ -93,7 +93,32 @@ export default async function BlogPostPage({ params }: Props) {
           <ReactMarkdown>{post.content}</ReactMarkdown>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 text-center">
+        <div className="mt-12 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+          <h3 className="text-base font-semibold text-slate-900">Questions about this topic?</h3>
+          <p className="text-sm text-slate-600 mt-1 mb-4">
+            Ask Tina directly — she answers every message personally.
+          </p>
+          <div className="flex gap-3 flex-wrap">
+            <a
+              href="https://wa.me/4367763401913"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block rounded-xl bg-green-600 hover:bg-green-700 text-white px-5 py-2 text-sm font-medium transition-colors"
+            >
+              WhatsApp
+            </a>
+            <a
+              href="https://t.me/Deutschmittintin"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block rounded-xl bg-sky-500 hover:bg-sky-600 text-white px-5 py-2 text-sm font-medium transition-colors"
+            >
+              Telegram
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 text-center">
           <h3 className="text-lg font-semibold text-slate-900">
             Ready to start learning German?
           </h3>
