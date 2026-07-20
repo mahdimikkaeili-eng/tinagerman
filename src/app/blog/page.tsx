@@ -33,7 +33,7 @@ export default async function BlogPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-white">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         <Link href="/" className="text-sm text-emerald-600 hover:text-emerald-700">
           ← Deutsch mit Tina
         </Link>
@@ -47,7 +47,7 @@ export default async function BlogPage() {
         {posts.length === 0 ? (
           <p className="text-slate-500 italic">No articles yet. Check back soon!</p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => (
               <Link
                 key={post.slug}
