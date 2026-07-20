@@ -37,7 +37,7 @@ export default async function BlogPage() {
         <Link href="/" className="text-sm text-emerald-600 hover:text-emerald-700">
           ← Deutsch mit Tina
         </Link>
-        <h1 className="text-4xl sm:text-5xl font-bold mt-4 mb-3 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+        <h1 className="text-4xl sm:text-5xl font-bold mt-4 mb-3 pb-2 leading-tight bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
           Blog
         </h1>
         <p className="text-slate-600 mb-10 text-lg">
