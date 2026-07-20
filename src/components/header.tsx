@@ -16,6 +16,7 @@ const navItems = [
   { key: "about", labelKey: "navAbout" as const, href: "#about" },
   { key: "contact", labelKey: "navContact" as const, href: "#contact" },
   { key: "faq", labelKey: "navFaq" as const, href: "#faq" },
+  { key: "blog", labelKey: "navBlog" as const, href: "/blog" },
 ];
 
 export function Header() {
@@ -43,6 +44,10 @@ export function Header() {
 
   const handleNavClick = (href: string) => {
     setMobileMenuOpen(false);
+    if (href.startsWith("/")) {
+      window.location.href = href;
+      return;
+    }
     const el = document.querySelector(href);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });

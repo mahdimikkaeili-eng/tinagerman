@@ -10,12 +10,17 @@ const footerNavItems = [
   { labelKey: "navCourses" as const, href: "#courses" },
   { labelKey: "navAbout" as const, href: "#about" },
   { labelKey: "navContact" as const, href: "#contact" },
+  { labelKey: "navBlog" as const, href: "/blog" },
 ];
 
 export function Footer() {
   const { language } = useAppStore();
 
   const handleNavClick = (href: string) => {
+    if (href.startsWith("/")) {
+      window.location.href = href;
+      return;
+    }
     const el = document.querySelector(href);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });

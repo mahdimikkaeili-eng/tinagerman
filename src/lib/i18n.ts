@@ -5,6 +5,7 @@ const translations = {
     // Header
     navHome: "Home",
     navCourses: "Courses",
+    navBlog: "Blog",
     navAbout: "About",
     navContact: "Contact",
     navPlacement: "Placement Test",
@@ -339,6 +340,7 @@ const translations = {
     // Header
     navHome: "Startseite",
     navCourses: "Kurse",
+    navBlog: "Blog",
     navAbout: "Über mich",
     navContact: "Kontakt",
     navPlacement: "Einstufungstest",
