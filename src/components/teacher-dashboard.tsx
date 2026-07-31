@@ -160,11 +160,20 @@ const statusColors: Record<string, string> = {
 // Helper to convert /uploads/xxx to /api/uploads?file=xxx for reliable file serving
 function getFileUrl(attachmentUrl: string): string {
   if (!attachmentUrl) return attachmentUrl;
-  const filename = attachmentUrl.replace("/uploads/", "");
-  if (filename && !attachmentUrl.startsWith("/api/")) {
+  // attachment may be stored as a JSON array string like ["/api/uploads?file=x"]
+  let raw = attachmentUrl;
+  if (raw.trim().startsWith("[")) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) raw = String(arr[0]);
+    } catch { /* keep raw */ }
+  }
+  if (raw.startsWith("/api/") || raw.startsWith("http")) return raw;
+  const filename = raw.replace("/uploads/", "").replace(/^\//, "");
+  if (filename) {
     return `/api/uploads?file=${encodeURIComponent(filename)}`;
   }
-  return attachmentUrl;
+  return raw;
 }
 
 // Google Calendar URL generator
@@ -1231,7 +1240,7 @@ export function TeacherDashboard() {
 
   // Format helpers
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = new Date(dateStr.length === 10 ? dateStr + "T00:00:00" : dateStr);
     return date.toLocaleDateString(language === "de" ? "de-DE" : "en-US", {
       weekday: "short",
       year: "numeric",
@@ -1535,9 +1544,9 @@ export function TeacherDashboard() {
                             <div className="flex items-center gap-3 flex-1">
                               <div className="flex flex-col items-center bg-emerald-50 rounded-lg px-3 py-2 min-w-[70px]">
                                 <span className="text-xs text-emerald-600 font-medium">
-                                  {new Date(booking.date).toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short" })}
+                                  {new Date(booking.date + "T00:00:00").toLocaleDateString(language === "de" ? "de-DE" : "en-US", { month: "short" })}
                                 </span>
-                                <span className="text-lg font-bold text-emerald-700">{new Date(booking.date).getDate()}</span>
+                                <span className="text-lg font-bold text-emerald-700">{new Date(booking.date + "T00:00:00").getDate()}</span>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-slate-900 truncate">{booking.user.name}</p>

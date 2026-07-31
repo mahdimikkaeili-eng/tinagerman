@@ -143,11 +143,20 @@ const statusColors: Record<string, string> = {
 // Helper to convert /uploads/xxx to /api/uploads?file=xxx for reliable file serving
 function getFileUrl(attachmentUrl: string): string {
   if (!attachmentUrl) return attachmentUrl;
-  const filename = attachmentUrl.replace("/uploads/", "");
-  if (filename && !attachmentUrl.startsWith("/api/")) {
+  // attachment may be stored as a JSON array string like ["/api/uploads?file=x"]
+  let raw = attachmentUrl;
+  if (raw.trim().startsWith("[")) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) raw = String(arr[0]);
+    } catch { /* keep raw */ }
+  }
+  if (raw.startsWith("/api/") || raw.startsWith("http")) return raw;
+  const filename = raw.replace("/uploads/", "").replace(/^\//, "");
+  if (filename) {
     return `/api/uploads?file=${encodeURIComponent(filename)}`;
   }
-  return attachmentUrl;
+  return raw;
 }
 
 export function Dashboard() {
