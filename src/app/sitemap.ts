@@ -20,6 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/exercises`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/privacy`,
       lastModified: new Date(),
       changeFrequency: "yearly",
@@ -38,7 +44,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     }));
-    return [...staticPages, ...postPages];
+    const exercises = await db.exercise.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    });
+    const exercisePages: MetadataRoute.Sitemap = exercises.map((ex) => ({
+      url: `${baseUrl}/exercises/${ex.slug}`,
+      lastModified: ex.updatedAt,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    }));
+    return [...staticPages, ...postPages, ...exercisePages];
   } catch {
     return staticPages;
   }

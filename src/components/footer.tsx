@@ -11,6 +11,7 @@ const footerNavItems = [
   { labelKey: "navAbout" as const, href: "#about" },
   { labelKey: "navContact" as const, href: "#contact" },
   { labelKey: "navBlog" as const, href: "/blog" },
+  { labelKey: "navExercises" as const, href: "/exercises" },
 ];
 
 export function Footer() {

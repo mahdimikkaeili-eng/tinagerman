@@ -17,6 +17,7 @@ const navItems = [
   { key: "contact", labelKey: "navContact" as const, href: "#contact" },
   { key: "faq", labelKey: "navFaq" as const, href: "#faq" },
   { key: "blog", labelKey: "navBlog" as const, href: "/blog" },
+  { key: "exercises", labelKey: "navExercises" as const, href: "/exercises" },
 ];
 
 export function Header() {
