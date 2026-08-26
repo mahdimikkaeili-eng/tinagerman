@@ -162,7 +162,123 @@ const weilDassWenn = {
   ],
 };
 
+const wennAls = {
+  modes: [
+    {
+      id: 'wa-basic',
+      type: 'choice',
+      level: 'A2',
+      title: 'Als, wenn or wann?',
+      instructions: 'One single event in the past, something repeated, or a question? Pick the right word.',
+      questions: [
+        {
+          prompt: '___ ich klein war, habe ich viel gespielt.',
+          speak: 'Als ich klein war, habe ich viel gespielt.',
+          options: ['Als', 'Wenn', 'Wann'],
+          answer: 'Als',
+          explain: 'One period in the past that is finished - always als.',
+        },
+        {
+          prompt: 'Immer ___ es regnet, bleibe ich zu Hause.',
+          speak: 'Immer wenn es regnet, bleibe ich zu Hause.',
+          options: ['als', 'wenn', 'wann'],
+          answer: 'wenn',
+          explain: 'It happens again and again, so wenn. The word immer is your clue.',
+        },
+        {
+          prompt: '___ kommst du nach Hause?',
+          speak: 'Wann kommst du nach Hause?',
+          options: ['Als', 'Wenn', 'Wann'],
+          answer: 'Wann',
+          explain: 'This is a real question, so wann.',
+        },
+        {
+          prompt: '___ ich Zeit habe, rufe ich dich an.',
+          speak: 'Wenn ich Zeit habe, rufe ich dich an.',
+          options: ['Als', 'Wenn', 'Wann'],
+          answer: 'Wenn',
+          explain: 'A condition in the future - wenn, never als.',
+        },
+        {
+          prompt: 'Weißt du, ___ der Zug abfährt?',
+          speak: 'Weißt du, wann der Zug abfährt?',
+          options: ['als', 'wenn', 'wann'],
+          answer: 'wann',
+          explain: 'A hidden question inside a sentence still takes wann.',
+        },
+        {
+          prompt: '___ wir in Wien angekommen sind, hat es geschneit.',
+          speak: 'Als wir in Wien angekommen sind, hat es geschneit.',
+          options: ['Als', 'Wenn', 'Wann'],
+          answer: 'Als',
+          explain: 'One moment in the past that happened only once - als.',
+        },
+      ],
+    },
+    {
+      id: 'wa-advanced',
+      type: 'choice',
+      level: 'B1',
+      title: 'Trickier cases',
+      instructions: 'Same three words, harder sentences. Watch the time signals.',
+      questions: [
+        {
+          prompt: 'Jedes Mal, ___ ich ihn sehe, lacht er.',
+          speak: 'Jedes Mal, wenn ich ihn sehe, lacht er.',
+          options: ['als', 'wenn', 'wann'],
+          answer: 'wenn',
+          explain: 'Jedes Mal signals repetition, so wenn - even about the past.',
+        },
+        {
+          prompt: '___ ich in Berlin gewohnt habe, war ich sehr glücklich.',
+          speak: 'Als ich in Berlin gewohnt habe, war ich sehr glücklich.',
+          options: ['Als', 'Wenn', 'Wann'],
+          answer: 'Als',
+          explain: 'One closed chapter of your life - als.',
+        },
+        {
+          prompt: 'Ich weiß nicht, ___ die Prüfung stattfindet.',
+          speak: 'Ich weiß nicht, wann die Prüfung stattfindet.',
+          options: ['als', 'wenn', 'wann'],
+          answer: 'wann',
+          explain: 'After ich weiß nicht you are asking something, so wann.',
+        },
+        {
+          prompt: 'Ruf mich an, ___ du angekommen bist.',
+          speak: 'Ruf mich an, wenn du angekommen bist.',
+          options: ['als', 'wenn', 'wann'],
+          answer: 'wenn',
+          explain: 'It has not happened yet - the future is always wenn.',
+        },
+        {
+          prompt: 'Früher, ___ ich noch studiert habe, hatte ich mehr Zeit.',
+          speak: 'Früher, als ich noch studiert habe, hatte ich mehr Zeit.',
+          options: ['als', 'wenn', 'wann'],
+          answer: 'als',
+          explain: 'Früher points to one finished period in the past - als.',
+        },
+        {
+          prompt: '___ ich 18 wurde, habe ich den Führerschein gemacht.',
+          speak: 'Als ich 18 wurde, habe ich den Führerschein gemacht.',
+          options: ['Als', 'Wenn', 'Wann'],
+          answer: 'Als',
+          explain: 'You turn 18 only once in your life - als.',
+        },
+      ],
+    },
+  ],
+};
+
 const items = [
+  {
+    slug: 'als-wenn-wann-german-difference',
+    title: 'Als, Wenn or Wann? The German Time Words',
+    level: 'A2',
+    topic: 'connectors',
+    summary: 'Three German words, one English word: when. Learn the difference in a few minutes and stop guessing which one to use.',
+    content: JSON.stringify(wennAls),
+    published: true,
+  },
   {
     slug: 'der-die-das-german-articles',
     title: 'Der, Die or Das? German Articles Game',
