@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { prismaEx } from '@/lib/prisma-ex';
+import { db } from '@/lib/db';
 import ExerciseEngine, { type ExerciseContent } from '@/components/exercises/ExerciseEngine';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 async function getExercise(rawSlug: string) {
   const slug = decodeURIComponent(rawSlug);
-  return prismaEx.exercise.findFirst({ where: { slug, published: true } });
+  return db.exercise.findFirst({ where: { slug, published: true } });
 }
 
 export async function generateMetadata({ params }: Props) {

@@ -342,7 +342,7 @@ const translations = {
     navHome: "Startseite",
     navCourses: "Kurse",
     navBlog: "Blog",
-    navExercises: "Exercises",
+    navExercises: "Übungen",
     navAbout: "Über mich",
     navContact: "Kontakt",
     navPlacement: "Einstufungstest",

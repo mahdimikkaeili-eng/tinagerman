@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { prismaEx } from '@/lib/prisma-ex';
+import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ const LEVEL_STYLE: Record<string, string> = {
 };
 
 export default async function ExercisesPage() {
-  const list = await prismaEx.exercise.findMany({
+  const list = await db.exercise.findMany({
     where: { published: true },
     orderBy: { createdAt: 'asc' },
   });
