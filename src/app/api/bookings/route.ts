@@ -204,6 +204,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         course: true,
+        payment: { select: { status: true, amount: true } },
       },
       orderBy: { createdAt: 'desc' },
     })

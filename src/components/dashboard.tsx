@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
+  Wallet,
   User,
   Calendar,
   MessageCircle,
@@ -78,6 +79,7 @@ interface Booking {
   isTrial: boolean;
   meetLink: string | null;
   course: { id: string; title: string; titleDe: string; level: string };
+  payment?: { status: string; amount: number } | null;
 }
 
 interface Homework {
@@ -1277,7 +1279,7 @@ export function Dashboard() {
                         {upcomingBookings.map((booking) => (
                           <div
                             key={booking.id}
-                            className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 transition-colors"
+                            className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 flex-wrap rounded-xl border border-slate-200 bg-white hover:border-emerald-300 transition-colors"
                           >
                             <div className="flex items-center gap-3 flex-1">
                               <div className="flex flex-col items-center bg-emerald-50 rounded-lg px-3 py-2 min-w-[70px]">
@@ -1311,7 +1313,7 @@ export function Dashboard() {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
                               <Badge
                                 variant="outline"
                                 className={
@@ -1321,6 +1323,41 @@ export function Dashboard() {
                               >
                                 {t(booking.status as "pending" | "confirmed" | "completed" | "cancelled", language)}
                               </Badge>
+                              {!booking.isTrial && booking.status !== "cancelled" && (
+                                <>
+                                  {!booking.payment && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                      onClick={() => { window.location.href = "/payment?bookingId=" + booking.id; }}
+                                    >
+                                      <Wallet className="size-3 mr-1" />
+                                      Pay with Crypto
+                                    </Button>
+                                  )}
+                                  {booking.payment?.status === "pending" && (
+                                    <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">
+                                      Under review
+                                    </Badge>
+                                  )}
+                                  {booking.payment?.status === "confirmed" && (
+                                    <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50">
+                                      Paid
+                                    </Badge>
+                                  )}
+                                  {booking.payment?.status === "rejected" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-red-300 text-red-600 hover:bg-red-50"
+                                      onClick={() => { window.location.href = "/payment?bookingId=" + booking.id; }}
+                                    >
+                                      <Wallet className="size-3 mr-1" />
+                                      Retry payment
+                                    </Button>
+                                  )}
+                                </>
+                              )}
                               {booking.meetLink && (
                                 <Button
                                   size="sm"
@@ -1749,7 +1786,7 @@ export function Dashboard() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap justify-end">
                                 <h4 className="text-sm font-medium text-slate-900">
                                   {hw.title}
                                 </h4>
@@ -1948,7 +1985,7 @@ export function Dashboard() {
                                       </div>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap justify-end">
                                     <Button
                                       size="sm"
                                       className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
