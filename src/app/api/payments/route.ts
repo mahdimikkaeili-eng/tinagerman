@@ -74,7 +74,6 @@ export async function POST(request: NextRequest) {
           message: `A student submitted a USDT payment for booking on ${booking.date} at ${booking.time}. Please verify and confirm.`,
           type: "booking",
           bookingId: booking.id,
-          actionUrl: `/teacher/payments`,
         },
       });
     }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import Script from "next/script";
 
 // No Google Fonts! Use system fonts for maximum compatibility with Iranian internet.
@@ -219,6 +220,7 @@ export default function RootLayout({
       <body className="antialiased bg-background text-foreground" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, 'Helvetica Neue', Arial, sans-serif" }}>
         {children}
         <Toaster />
+        <SonnerToaster position="top-center" richColors />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-PJWF75ZN62"
           strategy="afterInteractive"

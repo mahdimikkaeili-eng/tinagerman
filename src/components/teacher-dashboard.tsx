@@ -55,6 +55,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAppStore } from "@/store/app-store";
+import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { NotificationBell } from "./notification-bell";
 import {
@@ -210,6 +211,23 @@ export function TeacherDashboard() {
   const [students, setStudents] = useState<TeacherStudent[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+
+  const handleResetLink = async (studentId: string, studentName: string) => {
+    try {
+      const res = await fetch("/api/auth/reset-token", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: studentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Could not create link"); return; }
+      await navigator.clipboard.writeText(data.resetUrl);
+      toast.success("Reset link for " + studentName + " copied. Valid 30 minutes.");
+    } catch {
+      toast.error("Could not create reset link");
+    }
+  };
 
   // Chat
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -1792,6 +1810,17 @@ export function TeacherDashboard() {
                                   <p className="text-[11px] font-medium text-slate-700">{(student as any).firstLessonDate || "—"}</p>
                                   <p className="text-[10px] text-slate-400">{language === "en" ? "First lesson" : "Erste Stunde"}</p>
                                 </div>
+                              </div>
+
+                              <div className="px-4 py-2 border-b border-slate-100 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-[11px] h-7 border-slate-300 text-slate-600 hover:bg-slate-50"
+                                  onClick={() => handleResetLink(student.id, student.name)}
+                                >
+                                  {language === "en" ? "Copy password reset link" : "Passwort-Link kopieren"}
+                                </Button>
                               </div>
 
                               {/* Session history list */}
